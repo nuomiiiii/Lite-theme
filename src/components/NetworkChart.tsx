@@ -1,0 +1,823 @@
+"use client"
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { useWebSocketContext } from "@/hooks/use-websocket-context"
+import { fetchMonitor } from "@/lib/lite-api"
+import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
+import { cn, formatTime } from "@/lib/utils"
+import { PROBE_COLORS } from "@/lib/theme-tokens"
+import { LiteMonitor, LiteWebsocketResponse, ServerMonitorChart } from "@/types/lite-api"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { Button, MenuItem, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
+import { Activity, Route, ShieldCheck, Waypoints } from "lucide-react"
+import * as React from "react"
+import { useCallback, useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
+
+import { LoadingSpinner } from "./loading/Loader"
+
+interface ResultItem {
+  created_at: number
+  [key: string]: number | null
+}
+
+/**
+ * Helper method to calculate packet loss from delay data
+ */
+const calculatePacketLoss = (delays: Array<number | null>): number[] => {
+  if (!delays || delays.length === 0) return []
+
+  const packetLossRates: number[] = []
+  const windowSize = Math.min(10, Math.max(3, Math.floor(delays.length / 10)))
+  const timeoutThreshold = 3000
+  const extremeDelayThreshold = 10000
+
+  for (let i = 0; i < delays.length; i++) {
+    const currentDelay = delays[i]
+    let lossRate = 0
+
+    if (currentDelay === 0 || currentDelay === null || currentDelay === undefined) {
+      lossRate = 100
+    } else if (currentDelay >= extremeDelayThreshold) {
+      lossRate = Math.min(95, 60 + (currentDelay - extremeDelayThreshold) / 1000)
+    } else if (currentDelay >= timeoutThreshold) {
+      lossRate = Math.min(50, (currentDelay - timeoutThreshold) / 200)
+    } else {
+      const start = Math.max(0, i - Math.floor(windowSize / 2))
+      const end = Math.min(delays.length, i + Math.ceil(windowSize / 2))
+      const windowDelays = delays.slice(start, end).filter((delay): delay is number => delay !== null && delay > 0)
+
+      if (windowDelays.length > 2) {
+        const mean = windowDelays.reduce((sum, d) => sum + d, 0) / windowDelays.length
+        const variance = windowDelays.reduce((sum, d) => sum + (d - mean) ** 2, 0) / windowDelays.length
+        const standardDeviation = Math.sqrt(variance)
+        const coefficientOfVariation = standardDeviation / mean
+
+        if (coefficientOfVariation > 0.8) {
+          lossRate = Math.min(25, coefficientOfVariation * 15)
+        } else if (coefficientOfVariation > 0.5) {
+          lossRate = Math.min(10, coefficientOfVariation * 8)
+        } else if (coefficientOfVariation > 0.3) {
+          lossRate = Math.min(5, coefficientOfVariation * 5)
+        }
+
+        if (currentDelay > mean * 2.5) {
+          lossRate += Math.min(15, (currentDelay / mean - 2.5) * 10)
+        }
+      }
+    }
+
+    if (i > 0) {
+      const alpha = 0.3
+      lossRate = alpha * lossRate + (1 - alpha) * packetLossRates[i - 1]
+    }
+
+    packetLossRates.push(Math.max(0, Math.min(100, lossRate)))
+  }
+
+  return packetLossRates.map((rate) => Number(rate.toFixed(2)))
+}
+
+type MonitorPoint = ServerMonitorChart[string][number]
+
+type MonitorTaskSummary = {
+  name: string
+  currentDelay: number | null
+  averageDelay: number | null
+  packetLoss: number | null
+  availability: number | null
+  lastUpdated: number | null
+  samples: number
+  healthy: boolean
+}
+
+function finiteMetric(value: number | null | undefined): value is number {
+  return value !== null && value !== undefined && Number.isFinite(value)
+}
+
+function summarizeMonitorTask(name: string, points: MonitorPoint[]): MonitorTaskSummary {
+  const validDelays = points.map((point) => point.avg_delay).filter(finiteMetric)
+  const latest = points.at(-1)
+  const currentDelay = finiteMetric(latest?.avg_delay) ? latest.avg_delay : null
+  let weightedLoss = 0
+  let samples = 0
+
+  for (const point of points) {
+    const count = finiteMetric(point.sample_count) && point.sample_count > 0 ? point.sample_count : 1
+    const loss = finiteMetric(point.packet_loss) ? Math.min(100, Math.max(0, point.packet_loss)) : 0
+    weightedLoss += loss * count
+    samples += count
+  }
+
+  const packetLoss = samples > 0 ? weightedLoss / samples : null
+  return {
+    name,
+    currentDelay,
+    averageDelay: validDelays.length > 0 ? validDelays.reduce((sum, value) => sum + value, 0) / validDelays.length : null,
+    packetLoss,
+    availability: packetLoss === null ? null : Math.max(0, 100 - packetLoss),
+    lastUpdated: latest?.created_at || null,
+    samples,
+    healthy: currentDelay !== null && (packetLoss === null || packetLoss < 100),
+  }
+}
+
+function formatDelay(value: number | null): string {
+  return value === null ? "--" : `${Math.round(value)} ms`
+}
+
+function formatPercentage(value: number | null, digits = 1): string {
+  return value === null ? "--" : `${value.toFixed(digits)}%`
+}
+
+export function NetworkChart({ server_id, show, initialMonitorId }: { server_id: number; show: boolean; initialMonitorId?: number }) {
+  const { t } = useTranslation()
+  const { lastMessage } = useWebSocketContext()
+  const [hours, setHours] = React.useState(1)
+
+  const {
+    data: monitorData,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["monitor", server_id, hours],
+    queryFn: () => fetchMonitor(server_id, hours),
+    placeholderData: keepPreviousData,
+    enabled: show,
+    refetchOnMount: show,
+    refetchOnWindowFocus: false,
+    refetchInterval: show ? historyRefetchMs(hours) : false,
+    staleTime: 20000,
+  })
+
+  const fallbackServerName = useMemo(() => {
+    if (!lastMessage) return ""
+    try {
+      const websocketData = JSON.parse(lastMessage.data) as LiteWebsocketResponse
+      return websocketData.servers.find((server) => server.id === server_id)?.name || ""
+    } catch {
+      return ""
+    }
+  }, [lastMessage, server_id])
+
+  const monitorRecords = monitorData?.data || []
+  const isLoading = isPending
+  const hasInitialError = isError && !monitorData
+  const hasTasks = monitorRecords.length > 0
+  const hasSamples = monitorRecords.some((monitor) => monitor.created_at.length > 0)
+  const isEmpty = !isLoading && !hasInitialError && !!monitorData?.success && !hasTasks
+
+  React.useEffect(() => {
+    if (hasInitialError) console.error("Failed to load ping monitor data:", error)
+  }, [error, hasInitialError])
+  const transformedData = monitorRecords.length > 0 ? transformData(monitorRecords) : {}
+
+  const formattedData = hasSamples ? formatData(monitorRecords) : []
+  const initialChart = monitorRecords.find((monitor) => monitor.monitor_id === initialMonitorId)?.monitor_name
+
+  const chartDataKey = Object.keys(transformedData).length > 0
+    ? Object.keys(transformedData)
+    : monitorRecords.map((monitor) => monitor.monitor_name).filter(Boolean)
+
+  const initChartConfig = {
+    avg_delay: {
+      label: t("monitor.avgDelay"),
+    },
+    ...chartDataKey.reduce((acc, key) => {
+      acc[key] = {
+        label: key,
+      }
+      return acc
+    }, {} as ChartConfig),
+  } satisfies ChartConfig
+
+  return (
+    <NetworkChartClient
+      chartDataKey={chartDataKey}
+      chartConfig={initChartConfig}
+      chartData={transformedData}
+      serverName={monitorRecords[0]?.server_name || fallbackServerName}
+      formattedData={formattedData}
+      hours={hours}
+      isLoading={isLoading}
+      isEmpty={isEmpty}
+      hasError={hasInitialError}
+      initialChart={initialChart}
+      onHoursChange={setHours}
+      onRetry={() => void refetch()}
+    />
+  )
+}
+
+export const NetworkChartClient = React.memo(function NetworkChart({
+  chartDataKey,
+  chartConfig,
+  chartData,
+  serverName,
+  formattedData,
+  hours,
+  isLoading,
+  isEmpty,
+  hasError,
+  initialChart,
+  onHoursChange,
+  onRetry,
+}: {
+  chartDataKey: string[]
+  chartConfig: ChartConfig
+  chartData: ServerMonitorChart
+  serverName: string
+  formattedData: ResultItem[]
+  hours: number
+  isLoading: boolean
+  isEmpty: boolean
+  hasError: boolean
+  initialChart?: string
+  onHoursChange: (hours: number) => void
+  onRetry: () => void
+}) {
+  const { t } = useTranslation()
+  const hasTasks = chartDataKey.length > 0
+  const hasChartData = !isLoading && !hasError && formattedData.length > 0
+  const showTaskLayout = hasTasks && !hasError
+
+  const customBackgroundImage = (window.CustomBackgroundImage as string) !== "" ? window.CustomBackgroundImage : undefined
+
+  const forcePeakCutEnabled = (window.ForcePeakCutEnabled as boolean) ?? false
+
+  const [activeCharts, setActiveCharts] = React.useState<string[]>([])
+  const initializedChartKeys = React.useRef("")
+  const isPeakEnabled = forcePeakCutEnabled
+
+  React.useEffect(() => {
+    const signature = chartDataKey.join("\u0000")
+    if (!signature || initializedChartKeys.current === signature) return
+    setActiveCharts((previous) => {
+      if (!initializedChartKeys.current) {
+        if (initialChart && chartDataKey.includes(initialChart)) return [initialChart]
+        return [...chartDataKey]
+      }
+      const retained = previous.filter((chart) => chartDataKey.includes(chart))
+      const additions = chartDataKey.filter((chart) => !previous.includes(chart))
+      return retained.length > 0 ? [...retained, ...additions] : [...chartDataKey]
+    })
+    initializedChartKeys.current = signature
+  }, [chartDataKey, initialChart])
+
+  const toggleChart = useCallback((name: string) => {
+    setActiveCharts((previous) => {
+      if (previous.includes(name)) {
+        if (previous.length === 1) return previous
+        return previous.filter((chart) => chart !== name)
+      }
+      return [...previous, name]
+    })
+  }, [])
+
+  const selectAllCharts = useCallback(() => setActiveCharts([...chartDataKey]), [chartDataKey])
+
+  const getColorByIndex = useCallback(
+    (chart: string) => {
+      const index = chartDataKey.indexOf(chart)
+      return PROBE_COLORS[index % PROBE_COLORS.length]
+    },
+    [chartDataKey],
+  )
+
+  const taskSummaries = useMemo(
+    () => chartDataKey.map((name) => summarizeMonitorTask(name, chartData[name] || [])),
+    [chartData, chartDataKey],
+  )
+
+  const selectedTaskSummaries = useMemo(
+    () => taskSummaries.filter((summary) => activeCharts.includes(summary.name)),
+    [activeCharts, taskSummaries],
+  )
+
+  const overviewMetrics = useMemo(() => {
+    const delays = selectedTaskSummaries.map((summary) => summary.averageDelay).filter(finiteMetric)
+    const currentDelays = selectedTaskSummaries.map((summary) => summary.currentDelay).filter(finiteMetric)
+    const totalSamples = selectedTaskSummaries.reduce((sum, summary) => sum + summary.samples, 0)
+    const weightedLoss = selectedTaskSummaries.reduce(
+      (sum, summary) => sum + (summary.packetLoss ?? 0) * summary.samples,
+      0,
+    )
+    const packetLoss = totalSamples > 0 ? weightedLoss / totalSamples : null
+    const bestTask = [...selectedTaskSummaries]
+      .filter((summary) => summary.currentDelay !== null && summary.healthy)
+      .sort((a, b) => (a.currentDelay ?? Infinity) - (b.currentDelay ?? Infinity))[0]
+    const lastUpdated = selectedTaskSummaries.reduce<number | null>(
+      (latest, summary) => summary.lastUpdated !== null && (latest === null || summary.lastUpdated > latest) ? summary.lastUpdated : latest,
+      null,
+    )
+
+    return {
+      averageDelay: delays.length > 0 ? delays.reduce((sum, value) => sum + value, 0) / delays.length : null,
+      currentDelay: currentDelays.length > 0 ? currentDelays.reduce((sum, value) => sum + value, 0) / currentDelays.length : null,
+      packetLoss,
+      availability: packetLoss === null ? null : Math.max(0, 100 - packetLoss),
+      totalSamples,
+      bestTask,
+      lastUpdated,
+    }
+  }, [selectedTaskSummaries])
+
+  const chartElements = useMemo(() => {
+    const elements = []
+
+    // If exactly one chart is selected, show delay line and packet loss area
+    if (activeCharts.length === 1) {
+      const chart = activeCharts[0]
+      elements.push(
+        <Area
+          key="packet-loss-area"
+          isAnimationActive={false}
+          dataKey="packet_loss"
+          stroke="none"
+          fill="hsl(45, 100%, 60%)"
+          fillOpacity={0.3}
+          yAxisId="packet-loss"
+        />,
+        <Line
+          key="delay-line"
+          isAnimationActive={false}
+          strokeWidth={2.5}
+          type="linear"
+          dot={false}
+          dataKey="avg_delay"
+          stroke={getColorByIndex(chart)}
+          yAxisId="delay"
+          connectNulls={false}
+        />,
+      )
+    } else if (activeCharts.length > 1) {
+      // Multiple charts selected - show only delay lines for selected monitors
+      elements.push(
+        ...activeCharts.map((chart) => (
+          <Line
+            key={chart}
+            isAnimationActive={false}
+            strokeWidth={2.5}
+            type="linear"
+            dot={false}
+            dataKey={chart}
+            stroke={getColorByIndex(chart)}
+            name={chart}
+            connectNulls={false}
+            yAxisId="delay"
+          />
+        )),
+      )
+    } else {
+      // No selection - show all charts (default view)
+      elements.push(
+        ...chartDataKey.map((key) => (
+          <Line
+            key={key}
+            isAnimationActive={false}
+            strokeWidth={2.5}
+            type="linear"
+            dot={false}
+            dataKey={key}
+            stroke={getColorByIndex(key)}
+            connectNulls={false}
+            yAxisId="delay"
+          />
+        )),
+      )
+    }
+
+    return elements
+  }, [activeCharts, chartDataKey, getColorByIndex])
+
+  const processedData = useMemo(() => {
+    // Special handling for single chart selection
+    let baseData = formattedData
+    if (activeCharts.length === 1) {
+      const selectedChart = activeCharts[0]
+      const selectedData = chartData[selectedChart]
+      if (selectedData) {
+        baseData = selectedData.map((item) => ({
+          created_at: item.created_at,
+          avg_delay: item.avg_delay,
+          packet_loss: item.packet_loss ?? 0,
+        }))
+      }
+    }
+
+    if (!isPeakEnabled) {
+      return baseData
+    }
+
+    // For peak cutting, use the base data
+    const data = baseData
+
+    const windowSize = 11 // 增加窗口大小以获取更好的统计效果
+    const alpha = 0.3 // EWMA平滑因子
+
+    // 辅助函数：计算中位数
+    const getMedian = (arr: number[]) => {
+      const sorted = [...arr].sort((a, b) => a - b)
+      const mid = Math.floor(sorted.length / 2)
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+    }
+
+    // 辅助函数：异常值处理
+    const processValues = (values: number[]) => {
+      if (values.length === 0) return null
+
+      const median = getMedian(values)
+      const deviations = values.map((v) => Math.abs(v - median))
+      const medianDeviation = getMedian(deviations) * 1.4826 // MAD估计器
+
+      // 使用中位数绝对偏差(MAD)进行异常值检测
+      const validValues = values.filter(
+        (v) =>
+          Math.abs(v - median) <= 3 * medianDeviation && // 更严格的异常值判定
+          v <= median * 3, // 限制最大值不超过中位数的3倍
+      )
+
+      if (validValues.length === 0) return median // 如果没有有效值，返回中位数
+
+      // 计算EWMA
+      let ewma = validValues[0]
+      for (let i = 1; i < validValues.length; i++) {
+        ewma = alpha * validValues[i] + (1 - alpha) * ewma
+      }
+
+      return ewma
+    }
+
+    // 初始化EWMA历史值
+    const ewmaHistory: { [key: string]: number } = {}
+
+    return data.map((point, index) => {
+      if (index < windowSize - 1) return point
+
+      const window = data.slice(index - windowSize + 1, index + 1)
+      const smoothed = { ...point } as ResultItem
+
+      // Special handling for single chart selection
+      if (activeCharts.length === 1) {
+        if (point.avg_delay === null || point.avg_delay === undefined) return smoothed
+
+        // Process avg_delay for single chart
+        const values = window.map((w) => w.avg_delay as number).filter((v) => v !== undefined && v !== null)
+
+        if (values.length > 0) {
+          const processed = processValues(values)
+          if (processed !== null) {
+            if (ewmaHistory.avg_delay === undefined) {
+              ewmaHistory.avg_delay = processed
+            } else {
+              ewmaHistory.avg_delay = alpha * processed + (1 - alpha) * ewmaHistory.avg_delay
+            }
+            smoothed.avg_delay = ewmaHistory.avg_delay
+          }
+        }
+      } else {
+        // Process all chart keys or just the selected ones
+        const keysToProcess = activeCharts.length > 0 ? activeCharts : chartDataKey
+
+        keysToProcess.forEach((key) => {
+          if (point[key] === null || point[key] === undefined) return
+
+          const values = window.map((w) => w[key]).filter((v) => v !== undefined && v !== null) as number[]
+
+          if (values.length > 0) {
+            const processed = processValues(values)
+            if (processed !== null) {
+              // Apply EWMA smoothing
+              if (ewmaHistory[key] === undefined) {
+                ewmaHistory[key] = processed
+              } else {
+                ewmaHistory[key] = alpha * processed + (1 - alpha) * ewmaHistory[key]
+              }
+              smoothed[key] = ewmaHistory[key]
+            }
+          }
+        })
+      }
+
+      return smoothed
+    })
+  }, [isPeakEnabled, activeCharts, formattedData, chartData, chartDataKey])
+
+  return (
+    <div
+      aria-busy={isLoading}
+      data-state={isLoading ? "loading" : hasError ? "error" : isEmpty ? "empty" : "ready"}
+      className="flex flex-col gap-4"
+    >
+      <Card className={cn("overflow-hidden", { "bg-card/70": customBackgroundImage })}>
+        <CardHeader className={cn("flex flex-col gap-2 space-y-0 px-4 py-3 sm:flex-row sm:items-center sm:justify-between", showTaskLayout && "sm:min-h-[52px]")}>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Waypoints className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <CardTitle className="truncate text-sm">{t("monitor.overview")}</CardTitle>
+              {showTaskLayout ? (
+                <p className="mt-0.5 truncate text-[11px] font-normal text-muted-foreground">
+                  {`${serverName || "--"} · ${t("monitor.selectedTasks", { defaultValue: "已选任务" })} ${activeCharts.length}/${chartDataKey.length || 0}`}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          {showTaskLayout ? (
+            <Button size="small" variant="text" onClick={selectAllCharts} sx={{ height: 30, px: 1, fontSize: 12 }}>
+              {t("monitor.allTasks", { defaultValue: "全部任务" })}
+            </Button>
+          ) : null}
+        </CardHeader>
+        {showTaskLayout ? (
+          <>
+            <div className="flex flex-wrap gap-1.5 px-4 pb-3">
+              {chartDataKey.map((name) => {
+                const selected = activeCharts.includes(name)
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => toggleChart(name)}
+                    className={cn(
+                      "max-w-full truncate rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      selected ? "border-[#0E86DD] bg-[#0E86DD] text-white" : "border-[rgba(14,134,221,0.25)] bg-[#E8F4FC] text-[#0E86DD] dark:bg-[#12334A] dark:text-[#70BFF0]",
+                    )}
+                  >
+                    {name}
+                  </button>
+                )
+              })}
+            </div>
+            <CardContent className="grid grid-cols-2 gap-px bg-border/70 p-0 sm:grid-cols-4">
+              {[
+                [t("monitor.task"), hasChartData ? `${activeCharts.length}/${chartDataKey.length}` : "--"],
+                [t("monitor.avgDelayFull"), hasChartData ? formatDelay(overviewMetrics.averageDelay) : "--"],
+                [t("monitor.packetLoss"), hasChartData ? formatPercentage(overviewMetrics.packetLoss) : "--"],
+                [t("monitor.availability"), hasChartData ? formatPercentage(overviewMetrics.availability, 2) : "--"],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0 bg-card px-4 py-3.5">
+                  <p className="text-[11px] font-normal text-muted-foreground">{label}</p>
+                  <strong className="mt-1 block truncate text-lg font-semibold tabular-nums">{value}</strong>
+                </div>
+              ))}
+            </CardContent>
+          </>
+        ) : (
+          <CardContent className="flex min-h-[120px] items-center justify-center px-4 py-8">
+            {isLoading ? (
+              <div className="text-muted-foreground" aria-label={t("common.loading", "Loading")}><LoadingSpinner /></div>
+            ) : hasError ? (
+              <div className="flex flex-col items-center gap-3 text-center">
+                <p className="text-sm font-normal text-muted-foreground">{t("monitor.loadError", "Failed to load latency data")}</p>
+                <Button size="small" variant="outlined" onClick={onRetry}>{t("monitor.retry", "Retry")}</Button>
+              </div>
+            ) : (
+              <p className="text-sm font-normal text-muted-foreground">{t("monitor.noData", "该服务器未配置延迟检测")}</p>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      <Card data-testid="network-chart-card" className={cn("overflow-hidden", { "bg-card/70": customBackgroundImage })}>
+        <CardHeader className="flex flex-col gap-2 space-y-0 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Activity className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <CardTitle className="truncate text-sm">{t("monitor.allLatency")}</CardTitle>
+              {showTaskLayout ? (
+                <div className="mt-1 flex max-w-full flex-wrap items-center gap-x-3 gap-y-1">
+                  {activeCharts.slice(0, 4).map((name) => (
+                    <span key={name} className="flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">
+                      <i className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: getColorByIndex(name) }} />
+                      <span className="max-w-24 truncate">{name}</span>
+                    </span>
+                  ))}
+                  {activeCharts.length > 4 && <span className="text-[10px] text-muted-foreground">+{activeCharts.length - 4}</span>}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {showTaskLayout ? (
+            <Select
+              size="small"
+              value={String(hours)}
+              onChange={(event) => onHoursChange(Number(event.target.value))}
+              aria-label={t("monitor.timeRange", { defaultValue: "时间范围" })}
+              sx={{ width: 78, height: 32, fontSize: 12 }}
+            >
+              {HISTORY_TIME_OPTIONS.map((option) => <MenuItem key={option.value} value={String(option.value)}>{option.label}</MenuItem>)}
+            </Select>
+          ) : null}
+        </CardHeader>
+        {showTaskLayout ? (
+          <CardContent className="px-3 pb-3 pt-3 sm:px-4 sm:pb-4">
+            <div className={cn("relative overflow-hidden", hasChartData ? "h-[250px] sm:h-[280px]" : "h-[176px] sm:h-[200px]")}>
+              <ChartContainer
+                aria-hidden={!hasChartData}
+                config={chartConfig}
+                data-testid="network-chart-canvas"
+                className={cn(
+                  "aspect-auto h-full w-full transition-opacity duration-150 motion-reduce:transition-none",
+                  hasChartData ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0",
+                )}
+              >
+                <ComposedChart accessibilityLayer data={hasChartData ? processedData : []} margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="created_at"
+                    tickLine
+                    tickSize={3}
+                    axisLine={false}
+                    tickMargin={8}
+                    minTickGap={80}
+                    tickFormatter={(value) => {
+                      const date = new Date(value)
+                      const minutes = date.getMinutes().toString().padStart(2, "0")
+                      return `${date.getHours()}:${minutes}`
+                    }}
+                  />
+                  <YAxis yAxisId="delay" tickLine={false} axisLine={false} tickMargin={15} minTickGap={20} tickFormatter={(value) => `${value}ms`} />
+                  {activeCharts.length === 1 && (
+                    <YAxis yAxisId="packet-loss" orientation="right" tickLine={false} axisLine={false} tickMargin={15} minTickGap={20} tickFormatter={(value) => `${value}%`} />
+                  )}
+                  <ChartTooltip
+                    isAnimationActive={false}
+                    content={
+                      <ChartTooltipContent
+                        indicator="line"
+                        labelKey="created_at"
+                        labelFormatter={(_, payload) => formatTime(payload[0].payload.created_at)}
+                        formatter={(value, name) => {
+                          const isLoss = name === "packet_loss"
+                          const label = isLoss ? t("monitor.packetLoss", "Packet Loss") : name === "avg_delay" ? t("monitor.avgDelay", "Avg Delay") : String(name)
+                          return (
+                            <div className="flex flex-1 items-center justify-between leading-none">
+                              <span className="text-muted-foreground">{label}</span>
+                              <span className="ml-2 font-medium text-foreground tabular-nums">{Number(value).toFixed(2)}{isLoss ? "%" : "ms"}</span>
+                            </div>
+                          )
+                        }}
+                      />
+                    }
+                  />
+                  {chartElements}
+                </ComposedChart>
+              </ChartContainer>
+              {!hasChartData && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-md bg-muted/25">
+                  {isLoading ? (
+                    <div className="text-muted-foreground" aria-label={t("common.loading", "Loading")}><LoadingSpinner /></div>
+                  ) : (
+                    <p className="text-sm font-normal text-muted-foreground">{t("monitor.noSamples", "任务已配置，暂无采样数据")}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        ) : (
+          <CardContent className="flex min-h-[120px] items-center justify-center px-4 py-8">
+            {isLoading ? (
+              <div className="text-muted-foreground" aria-label={t("common.loading", "Loading")}><LoadingSpinner /></div>
+            ) : hasError ? (
+              <div className="flex flex-col items-center gap-3 text-center">
+                <p className="text-sm font-normal text-muted-foreground">{t("monitor.loadError", "Failed to load latency data")}</p>
+                <Button size="small" variant="outlined" onClick={onRetry}>{t("monitor.retry", "Retry")}</Button>
+              </div>
+            ) : (
+              <p className="text-sm font-normal text-muted-foreground">{t("monitor.noData", "该服务器未配置延迟检测")}</p>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 px-4 py-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><ShieldCheck className="size-4" /></span>
+          <div>
+            <CardTitle className="text-sm">{t("monitor.nodes")}</CardTitle>
+            <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">{t("monitor.nodesHint")}</p>
+          </div>
+        </CardHeader>
+        <TableContainer sx={{ overflowX: "auto", overflowY: "hidden" }}>
+          <Table size="small" aria-label={t("monitor.nodesTable")}>
+            <TableHead>
+              <TableRow>
+                {[
+                  t("monitor.task"),
+                  t("monitor.currentDelay"),
+                  t("monitor.avgDelayFull"),
+                  t("monitor.packetLoss"),
+                  t("monitor.lastUpdate"),
+                ].map((label) => <TableCell key={label} sx={{ py: 1.25, fontSize: 11, color: "text.secondary", whiteSpace: "nowrap" }}>{label}</TableCell>)}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {selectedTaskSummaries.length > 0 ? selectedTaskSummaries.map((summary) => (
+                <TableRow key={summary.name} hover>
+                  <TableCell sx={{ py: 1.25, fontSize: 12, fontWeight: 500, whiteSpace: "nowrap" }}>{summary.name}</TableCell>
+                  <TableCell sx={{ py: 1.25, fontSize: 12, whiteSpace: "nowrap" }}>{formatDelay(summary.currentDelay)}</TableCell>
+                  <TableCell sx={{ py: 1.25, fontSize: 12, whiteSpace: "nowrap" }}>{formatDelay(summary.averageDelay)}</TableCell>
+                  <TableCell sx={{ py: 1.25, fontSize: 12, whiteSpace: "nowrap" }}>{formatPercentage(summary.packetLoss)}</TableCell>
+                  <TableCell sx={{ py: 1.25, fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>{summary.lastUpdated === null ? "--" : formatTime(summary.lastUpdated)}</TableCell>
+                </TableRow>
+              )) : (
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 5, fontSize: 12, color: "text.secondary" }}>{hasTasks ? t("monitor.noSamples") : t("monitor.noProbeData")}</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 px-4 py-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400"><Route className="size-4" /></span>
+          <div>
+            <CardTitle className="text-sm">{t("monitor.routeSummary")}</CardTitle>
+            <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">{t("monitor.routeHint")}</p>
+          </div>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-px bg-border/70 p-0 sm:grid-cols-4">
+          {[
+            [t("monitor.bestTask"), overviewMetrics.bestTask?.name || "--"],
+            [t("monitor.availability"), formatPercentage(overviewMetrics.availability, 2)],
+            [t("monitor.sampleWindow"), `${hours}h / ${overviewMetrics.totalSamples || "--"}`],
+            [t("monitor.routeStatus"), overviewMetrics.bestTask?.healthy ? t("monitor.stable") : t("monitor.noStatus")],
+          ].map(([label, value]) => (
+            <div key={label} className="min-w-0 bg-card px-4 py-3.5">
+              <p className="text-[11px] font-normal text-muted-foreground">{label}</p>
+              <strong className="mt-1 block truncate text-sm font-semibold tabular-nums">{value}</strong>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+})
+
+const transformData = (data: LiteMonitor[]) => {
+  const monitorData: ServerMonitorChart = {}
+
+  data.forEach((item) => {
+    const monitorName = item.monitor_name
+
+    if (!monitorData[monitorName]) {
+      monitorData[monitorName] = []
+    }
+
+    // Calculate packet loss from delay data if not provided
+    const packetLoss = item.packet_loss || calculatePacketLoss(item.avg_delay)
+
+    for (let i = 0; i < item.created_at.length; i++) {
+      monitorData[monitorName].push({
+        created_at: item.created_at[i],
+        avg_delay: item.avg_delay[i],
+        packet_loss: packetLoss[i],
+        sample_count: item.sample_count?.[i],
+      })
+    }
+  })
+
+  return monitorData
+}
+
+const formatData = (rawData: LiteMonitor[]) => {
+  const result: { [time: number]: ResultItem } = {}
+
+  const allTimes = new Set<number>()
+  rawData.forEach((item) => {
+    item.created_at.forEach((time) => allTimes.add(time))
+  })
+
+  const allTimeArray = Array.from(allTimes).sort((a, b) => a - b)
+
+  rawData.forEach((item) => {
+    const { monitor_name, created_at, avg_delay } = item
+
+    // Calculate packet loss if not provided
+    const packetLoss = item.packet_loss || calculatePacketLoss(avg_delay)
+
+    allTimeArray.forEach((time) => {
+      if (!result[time]) {
+        result[time] = { created_at: time }
+      }
+
+      const timeIndex = created_at.indexOf(time)
+      result[time][monitor_name] = timeIndex !== -1 ? avg_delay[timeIndex] : null
+      // Add packet loss data if available
+      if (packetLoss) {
+        result[time][`${monitor_name}_packet_loss`] = timeIndex !== -1 ? packetLoss[timeIndex] : null
+      }
+    })
+  })
+
+  return Object.values(result).sort((a, b) => a.created_at - b.created_at)
+}

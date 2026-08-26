@@ -1,0 +1,40 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import test from "node:test"
+
+const detailSource = readFileSync(new URL("../src/pages/ServerDetail.tsx", import.meta.url), "utf8")
+const chartSource = readFileSync(new URL("../src/components/NetworkChart.tsx", import.meta.url), "utf8")
+
+test("keeps the inactive network panel measurable before its first display", () => {
+  assert.doesNotMatch(detailSource, /display:\s*currentTab/)
+  assert.match(detailSource, /data-testid="server-network-panel"/)
+  assert.match(detailSource, /relative w-full overflow-hidden/)
+  assert.match(detailSource, /pointer-events-none invisible absolute inset-x-0 top-0 overflow-hidden/)
+})
+
+test("keeps the network chart canvas mounted during initial data loading", () => {
+  assert.match(chartSource, /data-testid="network-chart-canvas"/)
+  assert.match(chartSource, /data=\{hasChartData \? processedData : \[\]\}/)
+  assert.match(chartSource, /!hasChartData &&/)
+  assert.match(chartSource, /hasChartData \? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"/)
+})
+
+test("loads monitor data only while the network tab is visible", () => {
+  assert.match(chartSource, /enabled:\s*show/)
+  assert.match(chartSource, /refetchOnWindowFocus:\s*false/)
+  assert.match(chartSource, /refetchInterval:\s*show\s*\?/)
+})
+
+test("lists assigned probe tasks even when no samples have arrived", () => {
+  assert.match(chartSource, /mergeAssignedPingMonitors|hasTasks/)
+  assert.match(chartSource, /monitor.noSamples/)
+  assert.match(chartSource, /const showTaskLayout = hasTasks && !hasError/)
+  assert.match(chartSource, /min-h-\[120px\] items-center justify-center/)
+})
+
+test("exits initial loading state and offers retry after a query failure", () => {
+  assert.match(chartSource, /const isLoading = isPending/)
+  assert.match(chartSource, /const hasInitialError = isError && !monitorData/)
+  assert.match(chartSource, /hasError=\{hasInitialError\}/)
+  assert.match(chartSource, /onClick=\{onRetry\}/)
+})

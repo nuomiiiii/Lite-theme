@@ -1,0 +1,226 @@
+{
+  "liteTheme": "Lite-Theme",
+  "all": "All",
+  "defaultSort": "Default sort",
+  "sortField": "Sort field",
+  "sortDirection": "Sort direction",
+  "serverGroups": "Server groups",
+  "changeLanguage": "Change language",
+  "changeTheme": "Change appearance",
+  "overview": "Overview",
+  "dashboard": "Dashboard",
+  "login": "Login",
+  "online": "Online",
+  "offline": "Offline",
+  "whereTheTimeIs": "Where the time is",
+  "refreshing": "Refreshing",
+  "info": {
+    "websocketConnecting": "WebSocket connecting",
+    "websocketConnected": "WebSocket connected",
+    "websocketDisconnected": "WebSocket disconnected",
+    "processing": "Processing..."
+  },
+  "serverOverview": {
+    "totalServers": "Total Servers",
+    "onlineServers": "Online Servers",
+    "offlineServers": "Offline Servers",
+    "totalBandwidth": "Total Bandwidth",
+    "speed": "Speed",
+    "network": "Network",
+    "globalStatus": "Global operating status",
+    "onlineRate": "Online rate",
+    "servers": "Servers",
+    "currentSpeed": "Current rate",
+    "liveTrafficCurve": "Live traffic"
+  },
+  "map": {
+    "Distributions": "Servers are distributed in",
+    "Regions": "Regions",
+    "Servers": "servers"
+  },
+  "serverCard": {
+    "mem": "MEM",
+    "stg": "STG",
+    "days": "Days",
+    "hours": "Hours",
+    "upload": "Upload",
+    "download": "Download",
+    "system": "System",
+    "uptime": "Uptime",
+    "totalUpload": "Upload",
+    "totalDownload": "Download",
+    "load": "Load",
+    "realtimeTransfer": "Live Transfer",
+    "networkQuality": "Network Quality",
+    "recentHour": "Last hour",
+    "monthlyTraffic": "Monthly Traffic",
+    "cumulative": "Total"
+  },
+  "cycleTransfer": {
+    "used": "used",
+    "total": "total",
+    "nextUpdate": "next update"
+  },
+  "serviceTracker": {
+    "noService": "No service data",
+    "uptime": "Uptime",
+    "delay": "Delay",
+    "daysAgo": "days ago",
+    "today": "Today",
+    "loading": "Loading..."
+  },
+  "serverDetail": {
+    "status": "Status",
+    "online": "Online",
+    "days": "Days",
+    "hours": "Hours",
+    "offline": "Offline",
+    "unknown": "Unknown",
+    "uptime": "Uptime",
+    "version": "Version",
+    "arch": "Arch",
+    "mem": "Mem",
+    "disk": "Disk",
+    "region": "Region",
+    "system": "System",
+    "upload": "Upload",
+    "download": "Download",
+    "lastActive": "Last active time",
+    "temperature": "Temperature",
+    "bootTime": "Boot time",
+    "usageStatistics": "Usage statistics",
+    "cores": "cores",
+    "trafficUsage": "Traffic usage",
+    "remainingTraffic": "Remaining traffic",
+    "usedTraffic": "Used traffic",
+    "unlimited": "No limit",
+    "runtimeInfo": "Runtime information",
+    "load": "System load",
+    "resourceTrend": "Resource trend",
+    "realtime": "Live",
+    "viewTabs": "Server views",
+    "currentUpload": "Current upload",
+    "currentDownload": "Current download",
+    "noHistory": "No history yet",
+    "backToList": "Back to server list",
+    "trafficUsageRate": "Traffic usage"
+  },
+  "serverDetailChart": {
+    "process": "Process",
+    "disk": "Disk",
+    "mem": "Mem",
+    "swap": "Swap",
+    "upload": "Upload",
+    "download": "Download"
+  },
+  "footer": {
+    "themeBy": "Theme by "
+  },
+  "language": {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    "en-US": "English",
+    "ja-JP": "日本語"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "error": {
+    "pageNotFound": "Page not found",
+    "backToHome": "Back to home",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "tabSwitch": {
+    "Detail": "Overview",
+    "Network": "Network Monitor"
+  },
+  "monitor": {
+    "noData": "No latency data. Add ping tasks in the admin panel first.",
+    "noSamples": "Tasks are configured, but no samples yet.",
+    "selectedTasks": "Selected tasks",
+    "avgDelay": "Latency",
+    "monitorCount": "Services",
+    "packetLoss": "Packet Loss",
+    "loadError": "Failed to load latency data",
+    "retry": "Retry",
+    "clearSelections": "Clear",
+    "allTasks": "All tasks",
+    "timeRange": "Time range",
+    "peakCut": "Peak cut",
+    "overview": "Probe overview",
+    "allLatency": "All probe latency",
+    "nodes": "Probe nodes",
+    "nodesHint": "Latest quality for the selected tasks",
+    "nodesTable": "Probe node data",
+    "task": "Probe task",
+    "currentDelay": "Current latency",
+    "avgDelayFull": "Average latency",
+    "lastUpdate": "Last update",
+    "noProbeData": "No probe data",
+    "routeSummary": "Route summary",
+    "routeHint": "Summarized from current probe data. Route type is not inferred.",
+    "bestTask": "Best probe task",
+    "availability": "Availability",
+    "sampleWindow": "Window / samples",
+    "routeStatus": "Status",
+    "stable": "Stable",
+    "noStatus": "No data"
+  },
+  "pwa": {
+    "offlineReady": "App ready to work offline",
+    "newContent": "New content available",
+    "reload": "Update"
+  },
+  "billingInfo": {
+    "remaining": "Remaining",
+    "remainingShort": "Left",
+    "error": "error",
+    "indefinite": "Indefinite",
+    "expired": "Expired",
+    "days": "days",
+    "price": "Price",
+    "free": "Free",
+    "usage-baseed": "Usage-based"
+  },
+  "TypeCommand": "Type a command or search...",
+  "NoResults": "No results found.",
+  "Servers": "Servers",
+  "Shortcuts": "Shortcuts",
+  "ToggleLightMode": "Toggle Light Mode",
+  "ToggleDarkMode": "Toggle Dark Mode",
+  "ToggleSystemMode": "Toggle System Mode",
+  "Home": "Home",
+  "home": {
+    "allServers": "All servers",
+    "serverCount": "{{count}} servers",
+    "filter": "Server filters",
+    "sort": "Sort",
+    "sortDefault": "Default sort",
+    "sortName": "Name",
+    "sortLoad": "Load",
+    "sortUpload": "Upload",
+    "sortDownload": "Download"
+  },
+  "region": {
+    "asia": "Asia",
+    "europe": "Europe",
+    "america": "Americas",
+    "oceania": "Oceania",
+    "other": "Other"
+  },
+  "traffic": {
+    "resetToday": "Resets today",
+    "resetInDays": "Resets in {{count}} days"
+  },
+  "privateSite": {
+    "title": "This monitor is private",
+    "hint": "Sign in with a Lite admin account before viewing servers.",
+    "adminLogin": "Admin login",
+    "refresh": "I already signed in, refresh"
+  },
+  "common": {
+    "loading": "Loading"
+  }
+}
