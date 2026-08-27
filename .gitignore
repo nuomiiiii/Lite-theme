@@ -27,3 +27,6 @@ dev-dist
 *.njsproj
 *.sln
 *.sw?
+
+# Cursor editor rules stay on this machine.
+.cursor/
