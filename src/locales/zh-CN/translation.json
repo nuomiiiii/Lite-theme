@@ -165,7 +165,7 @@
     "lastUpdate": "最后更新",
     "noProbeData": "暂无探测数据",
     "routeSummary": "线路摘要",
-    "routeHint": "基于当前探测数据汇总，不推测线路类型",
+    "routeHint": "按最佳单条探测任务展示，不合并其他线路。",
     "bestTask": "最佳探测任务",
     "availability": "可用性",
     "sampleWindow": "统计周期 / 采样",

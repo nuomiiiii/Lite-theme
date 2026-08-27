@@ -167,7 +167,7 @@
     "lastUpdate": "最後更新",
     "noProbeData": "暫無探測資料",
     "routeSummary": "線路摘要",
-    "routeHint": "依目前探測資料彙總，不推測線路類型",
+    "routeHint": "依最佳單條探測任務展示，不合併其他線路。",
     "bestTask": "最佳探測任務",
     "availability": "可用性",
     "sampleWindow": "統計週期 / 採樣",

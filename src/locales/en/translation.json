@@ -164,7 +164,7 @@
     "lastUpdate": "Last update",
     "noProbeData": "No probe data",
     "routeSummary": "Route summary",
-    "routeHint": "Summarized from current probe data. Route type is not inferred.",
+    "routeHint": "Shows the best single selected probe. Other probes are not mixed in.",
     "bestTask": "Best probe task",
     "availability": "Availability",
     "sampleWindow": "Window / samples",

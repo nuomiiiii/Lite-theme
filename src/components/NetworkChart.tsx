@@ -6,6 +6,7 @@ import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { fetchMonitor } from "@/lib/lite-api"
 import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
 import { selectedTaskSampleCount } from "@/lib/probe-samples"
+import { pickBestProbeTask } from "@/lib/probe-route"
 import { cn, formatTime, parseLiteWebsocketMessage } from "@/lib/utils"
 import { formatCompactTime } from "@/lib/format"
 import { PROBE_COLORS } from "@/lib/theme-tokens"
@@ -306,9 +307,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
       0,
     )
     const packetLoss = sampleWeight > 0 ? weightedLoss / sampleWeight : null
-    const bestTask = [...selectedTaskSummaries]
-      .filter((summary) => summary.currentDelay !== null && summary.healthy)
-      .sort((a, b) => (a.currentDelay ?? Infinity) - (b.currentDelay ?? Infinity))[0]
+    const bestTask = pickBestProbeTask(selectedTaskSummaries)
     const lastUpdated = selectedTaskSummaries.reduce<number | null>(
       (latest, summary) => summary.lastUpdated !== null && (latest === null || summary.lastUpdated > latest) ? summary.lastUpdated : latest,
       null,
@@ -763,8 +762,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
         <CardContent className="grid grid-cols-2 gap-px bg-border/70 p-0 sm:grid-cols-4">
           {[
             [t("monitor.bestTask"), overviewMetrics.bestTask?.name || "--"],
-            [t("monitor.availability"), formatPercentage(overviewMetrics.availability, 2)],
-            [t("monitor.sampleWindow"), `${hours}h / ${overviewMetrics.sampleCount || "--"}`],
+            [t("monitor.availability"), formatPercentage(overviewMetrics.bestTask?.availability ?? null, 2)],
+            [t("monitor.sampleWindow"), `${hours}h / ${overviewMetrics.bestTask?.samples || "--"}`],
             [t("monitor.routeStatus"), overviewMetrics.bestTask?.healthy ? t("monitor.stable") : t("monitor.noStatus")],
           ].map(([label, value]) => (
             <div key={label} className="min-w-0 bg-card px-4 py-3.5">

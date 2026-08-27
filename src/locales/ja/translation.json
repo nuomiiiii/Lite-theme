@@ -164,7 +164,7 @@
     "lastUpdate": "最終更新",
     "noProbeData": "プローブデータがありません",
     "routeSummary": "回線サマリー",
-    "routeHint": "現在のプローブデータから集計しています。回線種別は推定しません。",
+    "routeHint": "選択中の最良の単一プローブを表示します。他の回線は合算しません。",
     "bestTask": "最良のプローブタスク",
     "availability": "可用性",
     "sampleWindow": "期間 / サンプル",
