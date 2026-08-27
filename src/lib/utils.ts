@@ -66,6 +66,17 @@ export function formatLiteInfo(now: number, serverInfo: LiteServer) {
   }
 }
 
+export function parseLiteWebsocketMessage(raw: string | undefined | null): LiteWebsocketResponse | null {
+  if (!raw) return null
+  try {
+    const data = JSON.parse(raw) as LiteWebsocketResponse
+    if (!data || typeof data !== "object" || !Array.isArray(data.servers)) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
 export function calcTrafficUsed(up: number, down: number, type: string): number {
   switch (type) {
     case "max": return Math.max(up, down)

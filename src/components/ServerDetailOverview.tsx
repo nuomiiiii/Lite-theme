@@ -1,8 +1,7 @@
 import ServerFlag from "@/components/ServerFlag"
 import { ServerDetailLoading } from "@/components/loading/ServerDetailLoading"
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
-import { cn, formatLiteInfo } from "@/lib/utils"
-import { LiteWebsocketResponse } from "@/types/lite-api"
+import { cn, formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
 import { ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
@@ -13,7 +12,7 @@ export default function ServerDetailOverview({ server_id }: { server_id: number 
   const { lastMessage, connected } = useWebSocketContext()
 
   if (!connected && !lastMessage) return <ServerDetailLoading />
-  const websocketData = lastMessage ? (JSON.parse(lastMessage.data) as LiteWebsocketResponse) : null
+  const websocketData = parseLiteWebsocketMessage(lastMessage?.data)
   const server = websocketData?.servers.find((item) => item.id === server_id)
   if (!websocketData || !server) return <ServerDetailLoading />
 

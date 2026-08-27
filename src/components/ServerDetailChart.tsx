@@ -6,8 +6,7 @@ import { fetchResourceHistory, type ResourceHistoryPoint } from "@/lib/lite-api"
 import { clampPercent } from "@/lib/resource-history"
 import { METER_TONE_COLOR, cpuCoreCount, resourceUsageTone } from "@/lib/meter-tone"
 import { RESOURCE_COLORS, THEME } from "@/lib/theme-tokens"
-import { calcTrafficUsed, cn, formatLiteInfo } from "@/lib/utils"
-import { LiteWebsocketResponse } from "@/types/lite-api"
+import { calcTrafficUsed, cn, formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { MenuItem, Select } from "@mui/material"
 import { ArrowDown, ArrowUp, BarChart3, CircleCheck, Cpu, HardDrive, MemoryStick } from "lucide-react"
@@ -173,7 +172,7 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
   const { lastMessage, connected } = useWebSocketContext()
   const [hours, setHours] = useState(1)
 
-  const websocketData = lastMessage ? (JSON.parse(lastMessage.data) as LiteWebsocketResponse) : null
+  const websocketData = parseLiteWebsocketMessage(lastMessage?.data)
   const server = websocketData?.servers.find((item) => item.id === server_id)
   const totals = {
     memTotal: server?.host.mem_total || 0,

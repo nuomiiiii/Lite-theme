@@ -6,10 +6,10 @@ import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { fetchMonitor } from "@/lib/lite-api"
 import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
 import { selectedTaskSampleCount } from "@/lib/probe-samples"
-import { cn, formatTime } from "@/lib/utils"
+import { cn, formatTime, parseLiteWebsocketMessage } from "@/lib/utils"
 import { formatCompactTime } from "@/lib/format"
 import { PROBE_COLORS } from "@/lib/theme-tokens"
-import { LiteMonitor, LiteWebsocketResponse, ServerMonitorChart } from "@/types/lite-api"
+import { LiteMonitor, ServerMonitorChart } from "@/types/lite-api"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Button, MenuItem, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
 import { Activity, Route, ShieldCheck, Waypoints } from "lucide-react"
@@ -158,12 +158,8 @@ export function NetworkChart({ server_id, show, initialMonitorId }: { server_id:
 
   const fallbackServerName = useMemo(() => {
     if (!lastMessage) return ""
-    try {
-      const websocketData = JSON.parse(lastMessage.data) as LiteWebsocketResponse
-      return websocketData.servers.find((server) => server.id === server_id)?.name || ""
-    } catch {
-      return ""
-    }
+    const websocketData = parseLiteWebsocketMessage(lastMessage.data)
+    return websocketData?.servers.find((server) => server.id === server_id)?.name || ""
   }, [lastMessage, server_id])
 
   const monitorRecords = monitorData?.data || []

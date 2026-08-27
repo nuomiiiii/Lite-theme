@@ -132,7 +132,7 @@ async function fetchPublicPingTasks(): Promise<LitePingTask[]> {
   }
 
   try {
-    const taskResult = await SharedClient().callViaHTTP<undefined, unknown>("public:getPublicPingTasks", undefined, { timeout: 15000 })
+    const taskResult = await SharedClient().call<undefined, unknown>("public:getPublicPingTasks", undefined, { timeout: 15000 })
     const tasks = asPingTaskList(taskResult)
     pingTaskCache = { savedAt: Date.now(), tasks }
     return tasks
@@ -147,7 +147,7 @@ async function fetchPingMetricSeries(
 ): Promise<{ series: LiteMetricSeries[]; tasks: LitePingTask[] }> {
   const client = SharedClient()
   const [result, tasks] = await Promise.all([
-    client.callViaHTTP<Record<string, unknown>, LiteMetricResponse>(
+    client.call<Record<string, unknown>, LiteMetricResponse>(
       "public:queryMetrics",
       {
         metric_keys: [PING_LATENCY_METRIC, PING_LOSS_METRIC],
@@ -299,7 +299,7 @@ interface PingRecordsResponse {
 
 async function fetchPingRecords(uuid: string, hours: number): Promise<{ records: PingRecordItem[]; tasks: LitePingTask[] }> {
   try {
-    const result = await SharedClient().callViaHTTP<Record<string, unknown>, PingRecordsResponse>(
+    const result = await SharedClient().call<Record<string, unknown>, PingRecordsResponse>(
       "public:getPingRecords",
       { uuid, hours: String(hours) },
       { timeout: 20000 },
@@ -370,7 +370,7 @@ export async function fetchHomeLatency(entityIds: string[]): Promise<HomeLatency
   if (uniqueEntityIds.length === 0) return {}
 
   const [statsResult, tasks] = await Promise.all([
-    SharedClient().callViaHTTP<Record<string, unknown>, PublicPingMetricStatsResponse>(
+    SharedClient().call<Record<string, unknown>, PublicPingMetricStatsResponse>(
       "public:getPingMetricStats",
       {
         entity_ids: uniqueEntityIds,
@@ -431,7 +431,7 @@ export async function fetchResourceHistory(serverId: number, hours: number, tota
   if (!uuid) return []
 
   const maxPoints = historyMaxPoints(hours)
-  const metricResult = await SharedClient().callViaHTTP<Record<string, unknown>, LiteMetricResponse>(
+  const metricResult = await SharedClient().call<Record<string, unknown>, LiteMetricResponse>(
     "public:queryMetrics",
     {
       metric_keys: [CPU_USAGE_METRIC, MEMORY_USED_METRIC, DISK_USED_METRIC],
@@ -455,7 +455,7 @@ export async function fetchResourceHistory(serverId: number, hours: number, tota
 
   if (points.length > 0) return points
 
-  const recordResult = await SharedClient().callViaHTTP<Record<string, unknown>, { records?: LoadRecordItem[] }>(
+  const recordResult = await SharedClient().call<Record<string, unknown>, { records?: LoadRecordItem[] }>(
     "public:getRecordsByUUID",
     { uuid, hours: String(hours), load_type: "all" },
     { timeout: 20000 },

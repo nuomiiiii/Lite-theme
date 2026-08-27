@@ -7,4 +7,5 @@ const utils = readFileSync(new URL("../src/lib/utils.ts", import.meta.url), "utf
 test("ignores plain public remarks instead of parsing them as JSON", () => {
   assert.match(utils, /if \(!raw \|\| raw\[0\] !== "\{"\)/)
   assert.doesNotMatch(utils, /Error parsing public note/)
+  assert.match(utils, /export function parseLiteWebsocketMessage/)
 })

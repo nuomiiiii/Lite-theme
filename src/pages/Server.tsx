@@ -8,8 +8,8 @@ import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { readHomeLatencyCache, writeHomeLatencyCache } from "@/lib/home-latency"
 import { fetchHomeLatency, fetchServerGroup } from "@/lib/lite-api"
 import { readThemeHomeSort } from "@/lib/theme-home-sort"
-import { formatLiteInfo } from "@/lib/utils"
-import { LiteWebsocketResponse, ServerGroup } from "@/types/lite-api"
+import { formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
+import { ServerGroup } from "@/types/lite-api"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -44,7 +44,7 @@ export default function Servers() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   })
-  const websocketData = lastMessage ? (JSON.parse(lastMessage.data) as LiteWebsocketResponse) : null
+  const websocketData = parseLiteWebsocketMessage(lastMessage?.data)
   const latencyEntityKey = useMemo(
     () =>
       (websocketData?.servers || [])
