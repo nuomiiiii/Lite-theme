@@ -103,6 +103,8 @@ test("keeps public dashboard polling cheap", () => {
   assert.match(websocket, /getLiteNodes\(false\)/)
   assert.match(liteApi, /public:getPingMetricStats/)
   assert.match(liteApi, /historyMaxPoints/)
+  assert.match(serverPage, /refetchInterval: 5_000/)
+  assert.doesNotMatch(serverPage, /max-\[620px\]:flex-col/)
 })
 
 test("keeps assigned ping tasks on the public monitor even without metric points", () => {

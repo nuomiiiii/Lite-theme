@@ -15,6 +15,7 @@ type ServerOverviewProps = {
   down: number
   upSpeed: number
   downSpeed: number
+  now?: number
   servers: Array<{ country_code?: string; online: boolean }>
 }
 
@@ -26,13 +27,14 @@ export default function ServerOverview({
   down,
   upSpeed,
   downSpeed,
+  now,
   servers,
 }: ServerOverviewProps) {
   const { t } = useTranslation()
   const { status, setStatus } = useStatus()
   const availability = total > 0 ? Math.round((online / total) * 100) : 0
   const regions = regionStats(servers)
-  const trafficSamples = useMemo(() => recordHomeTraffic(upSpeed, downSpeed), [downSpeed, upSpeed])
+  const trafficSamples = useMemo(() => recordHomeTraffic(upSpeed, downSpeed, now), [downSpeed, now, upSpeed])
   const upPath = seriesPath(trafficSamples.map((sample) => sample.up), 800, 142)
   const downPath = seriesPath(trafficSamples.map((sample) => sample.down), 800, 142)
 

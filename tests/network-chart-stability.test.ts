@@ -32,6 +32,13 @@ test("lists assigned probe tasks even when no samples have arrived", () => {
   assert.match(chartSource, /min-h-\[120px\] items-center justify-center/)
 })
 
+test("keeps network header actions on the same row as titles on mobile", () => {
+  assert.match(chartSource, /monitor\.allTasks/)
+  assert.doesNotMatch(chartSource, /flex flex-col gap-2 space-y-0 px-4 py-3 sm:flex-row/)
+  assert.match(chartSource, /flex flex-row items-center justify-between gap-2 space-y-0 px-4 py-3/)
+  assert.match(chartSource, /flexShrink: 0/)
+})
+
 test("exits initial loading state and offers retry after a query failure", () => {
   assert.match(chartSource, /const isLoading = isPending/)
   assert.match(chartSource, /const hasInitialError = isError && !monitorData/)

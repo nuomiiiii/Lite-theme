@@ -5,7 +5,9 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { fetchMonitor } from "@/lib/lite-api"
 import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
+import { selectedTaskSampleCount } from "@/lib/probe-samples"
 import { cn, formatTime } from "@/lib/utils"
+import { formatCompactTime } from "@/lib/format"
 import { PROBE_COLORS } from "@/lib/theme-tokens"
 import { LiteMonitor, LiteWebsocketResponse, ServerMonitorChart } from "@/types/lite-api"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
@@ -301,12 +303,13 @@ export const NetworkChartClient = React.memo(function NetworkChart({
   const overviewMetrics = useMemo(() => {
     const delays = selectedTaskSummaries.map((summary) => summary.averageDelay).filter(finiteMetric)
     const currentDelays = selectedTaskSummaries.map((summary) => summary.currentDelay).filter(finiteMetric)
-    const totalSamples = selectedTaskSummaries.reduce((sum, summary) => sum + summary.samples, 0)
+    const sampleCount = selectedTaskSampleCount(selectedTaskSummaries.map((summary) => summary.samples))
+    const sampleWeight = selectedTaskSummaries.reduce((sum, summary) => sum + summary.samples, 0)
     const weightedLoss = selectedTaskSummaries.reduce(
       (sum, summary) => sum + (summary.packetLoss ?? 0) * summary.samples,
       0,
     )
-    const packetLoss = totalSamples > 0 ? weightedLoss / totalSamples : null
+    const packetLoss = sampleWeight > 0 ? weightedLoss / sampleWeight : null
     const bestTask = [...selectedTaskSummaries]
       .filter((summary) => summary.currentDelay !== null && summary.healthy)
       .sort((a, b) => (a.currentDelay ?? Infinity) - (b.currentDelay ?? Infinity))[0]
@@ -320,7 +323,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
       currentDelay: currentDelays.length > 0 ? currentDelays.reduce((sum, value) => sum + value, 0) / currentDelays.length : null,
       packetLoss,
       availability: packetLoss === null ? null : Math.max(0, 100 - packetLoss),
-      totalSamples,
+      sampleCount,
       bestTask,
       lastUpdated,
     }
@@ -345,7 +348,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
         <Line
           key="delay-line"
           isAnimationActive={false}
-          strokeWidth={2.5}
+          strokeWidth={1.4}
           type="linear"
           dot={false}
           dataKey="avg_delay"
@@ -361,7 +364,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
           <Line
             key={chart}
             isAnimationActive={false}
-            strokeWidth={2.5}
+            strokeWidth={1.4}
             type="linear"
             dot={false}
             dataKey={chart}
@@ -379,7 +382,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
           <Line
             key={key}
             isAnimationActive={false}
-            strokeWidth={2.5}
+            strokeWidth={1.4}
             type="linear"
             dot={false}
             dataKey={key}
@@ -514,8 +517,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
       className="flex flex-col gap-4"
     >
       <Card className={cn("overflow-hidden", { "bg-card/70": customBackgroundImage })}>
-        <CardHeader className={cn("flex flex-col gap-2 space-y-0 px-4 py-3 sm:flex-row sm:items-center sm:justify-between", showTaskLayout && "sm:min-h-[52px]")}>
-          <div className="flex min-w-0 items-center gap-2.5">
+        <CardHeader className={cn("flex flex-row items-center justify-between gap-2 space-y-0 px-4 py-3", showTaskLayout && "min-h-[52px]")}>
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Waypoints className="size-4" />
             </span>
@@ -529,7 +532,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
             </div>
           </div>
           {showTaskLayout ? (
-            <Button size="small" variant="text" onClick={selectAllCharts} sx={{ height: 30, px: 1, fontSize: 12 }}>
+            <Button size="small" variant="text" onClick={selectAllCharts} sx={{ height: 30, px: 1, fontSize: 12, flexShrink: 0 }}>
               {t("monitor.allTasks", { defaultValue: "全部任务" })}
             </Button>
           ) : null}
@@ -586,8 +589,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
       </Card>
 
       <Card data-testid="network-chart-card" className={cn("overflow-hidden", { "bg-card/70": customBackgroundImage })}>
-        <CardHeader className="flex flex-col gap-2 space-y-0 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-2.5">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Activity className="size-4" />
             </span>
@@ -612,7 +615,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
               value={String(hours)}
               onChange={(event) => onHoursChange(Number(event.target.value))}
               aria-label={t("monitor.timeRange", { defaultValue: "时间范围" })}
-              sx={{ width: 78, height: 32, fontSize: 12 }}
+              sx={{ width: 78, height: 32, fontSize: 12, flexShrink: 0 }}
             >
               {HISTORY_TIME_OPTIONS.map((option) => <MenuItem key={option.value} value={String(option.value)}>{option.label}</MenuItem>)}
             </Select>
@@ -630,7 +633,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                   hasChartData ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0",
                 )}
               >
-                <ComposedChart accessibilityLayer data={hasChartData ? processedData : []} margin={{ left: 12, right: 12 }}>
+                <ComposedChart data={hasChartData ? processedData : []} margin={{ left: 12, right: 12 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis
                     dataKey="created_at"
@@ -651,6 +654,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                   )}
                   <ChartTooltip
                     isAnimationActive={false}
+                    defaultIndex={undefined}
+                    trigger="hover"
                     content={
                       <ChartTooltipContent
                         indicator="line"
@@ -707,8 +712,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
             <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">{t("monitor.nodesHint")}</p>
           </div>
         </CardHeader>
-        <TableContainer sx={{ overflowX: "auto", overflowY: "hidden" }}>
-          <Table size="small" aria-label={t("monitor.nodesTable")}>
+        <TableContainer sx={{ overflow: "hidden" }}>
+          <Table size="small" aria-label={t("monitor.nodesTable")} sx={{ tableLayout: "fixed", width: "100%" }}>
             <TableHead>
               <TableRow>
                 {[
@@ -717,17 +722,31 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                   t("monitor.avgDelayFull"),
                   t("monitor.packetLoss"),
                   t("monitor.lastUpdate"),
-                ].map((label) => <TableCell key={label} sx={{ py: 1.25, fontSize: 11, color: "text.secondary", whiteSpace: "nowrap" }}>{label}</TableCell>)}
+                ].map((label) => (
+                  <TableCell
+                    key={label}
+                    sx={{
+                      px: { xs: 0.75, sm: 1.5 },
+                      py: 1,
+                      fontSize: 11,
+                      color: "text.secondary",
+                      lineHeight: 1.25,
+                      whiteSpace: "normal",
+                    }}
+                  >
+                    {label}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {selectedTaskSummaries.length > 0 ? selectedTaskSummaries.map((summary) => (
                 <TableRow key={summary.name} hover>
-                  <TableCell sx={{ py: 1.25, fontSize: 12, fontWeight: 500, whiteSpace: "nowrap" }}>{summary.name}</TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 12, whiteSpace: "nowrap" }}>{formatDelay(summary.currentDelay)}</TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 12, whiteSpace: "nowrap" }}>{formatDelay(summary.averageDelay)}</TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 12, whiteSpace: "nowrap" }}>{formatPercentage(summary.packetLoss)}</TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>{summary.lastUpdated === null ? "--" : formatTime(summary.lastUpdated)}</TableCell>
+                  <TableCell sx={{ px: { xs: 0.75, sm: 1.5 }, py: 1, fontSize: 12, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{summary.name}</TableCell>
+                  <TableCell sx={{ px: { xs: 0.75, sm: 1.5 }, py: 1, fontSize: 12, whiteSpace: "nowrap" }}>{formatDelay(summary.currentDelay)}</TableCell>
+                  <TableCell sx={{ px: { xs: 0.75, sm: 1.5 }, py: 1, fontSize: 12, whiteSpace: "nowrap" }}>{formatDelay(summary.averageDelay)}</TableCell>
+                  <TableCell sx={{ px: { xs: 0.75, sm: 1.5 }, py: 1, fontSize: 12, whiteSpace: "nowrap" }}>{formatPercentage(summary.packetLoss)}</TableCell>
+                  <TableCell sx={{ px: { xs: 0.75, sm: 1.5 }, py: 1, fontSize: 11, color: "text.secondary", lineHeight: 1.25, whiteSpace: "normal" }}>{summary.lastUpdated === null ? "--" : formatCompactTime(summary.lastUpdated)}</TableCell>
                 </TableRow>
               )) : (
                 <TableRow><TableCell colSpan={5} align="center" sx={{ py: 5, fontSize: 12, color: "text.secondary" }}>{hasTasks ? t("monitor.noSamples") : t("monitor.noProbeData")}</TableCell></TableRow>
@@ -749,7 +768,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
           {[
             [t("monitor.bestTask"), overviewMetrics.bestTask?.name || "--"],
             [t("monitor.availability"), formatPercentage(overviewMetrics.availability, 2)],
-            [t("monitor.sampleWindow"), `${hours}h / ${overviewMetrics.totalSamples || "--"}`],
+            [t("monitor.sampleWindow"), `${hours}h / ${overviewMetrics.sampleCount || "--"}`],
             [t("monitor.routeStatus"), overviewMetrics.bestTask?.healthy ? t("monitor.stable") : t("monitor.noStatus")],
           ].map(([label, value]) => (
             <div key={label} className="min-w-0 bg-card px-4 py-3.5">

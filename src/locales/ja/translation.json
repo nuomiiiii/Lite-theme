@@ -103,7 +103,11 @@
     "currentDownload": "現在の受信",
     "noHistory": "履歴がありません",
     "backToList": "サーバー一覧に戻る",
-    "trafficUsageRate": "トラフィック使用率"
+    "trafficUsageRate": "トラフィック使用率",
+    "remaining": "残り",
+    "used": "使用",
+    "outbound": "送信",
+    "inbound": "受信"
   },
   "serverDetailChart": {
     "process": "プロセス",

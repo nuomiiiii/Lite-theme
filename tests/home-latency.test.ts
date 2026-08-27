@@ -102,8 +102,9 @@ test("keeps total packet loss visible without inventing latency", () => {
 
 test("fills the probe bar from last-hour reply rate, not expected ping count", () => {
   assert.equal(hourPacketFillPercent({}), 0)
-  assert.equal(hourPacketFillPercent({ packetLoss: 0 }), 100)
-  assert.equal(hourPacketFillPercent({ packetLoss: 25 }), 75)
+  assert.equal(hourPacketFillPercent({ packetLoss: 0 }), 0)
+  assert.equal(hourPacketFillPercent({ packetLoss: 25 }), 0)
+  assert.equal(hourPacketFillPercent({ total: 0, valid: 0, packetLoss: 0 }), 0)
   assert.equal(hourPacketFillPercent({ total: 60, valid: 60 }), 100)
   assert.equal(hourPacketFillPercent({ total: 60, valid: 57, packetLoss: 5 }), 95)
   assert.equal(hourPacketFillPercent({ total: 12, valid: 12, interval: 60 }), 100)
@@ -139,6 +140,15 @@ test("maps ping metric stats onto per-task home summaries", () => {
   assert.equal(result["node-a"][0].taskName, "Shanghai")
   assert.equal(result["node-a"][0].latency, 32)
   assert.equal(result["node-a"][1].taskName, "Tokyo")
+})
+
+test("treats zero-sample ping stats as empty instead of a full green bar", () => {
+  const result = mapPingStatsToHomeLatency([
+    { entity_id: "node-a", task_id: "1", name: "Fujian", latest: null, loss: 0, total: 0, valid: 0 },
+  ])
+  assert.equal(result["node-a"][0].latency, null)
+  assert.equal(result["node-a"][0].packetLoss, null)
+  assert.equal(hourPacketFillPercent(result["node-a"][0]), 0)
 })
 
 test("homepage cards keep at most four probe tasks and fill one PC row", () => {

@@ -64,8 +64,8 @@ export default function Servers() {
     },
     placeholderData: () => readHomeLatencyCache(homeLatencyStorage(), latencyEntityIds),
     enabled: latencyEntityIds.length > 0,
-    staleTime: 45_000,
-    refetchInterval: 60_000,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
     refetchOnWindowFocus: false,
   })
 
@@ -146,17 +146,18 @@ export default function Servers() {
         down={down}
         upSpeed={upSpeed}
         downSpeed={downSpeed}
+        now={websocketData.now}
         servers={regionServers}
       />
-      <section className="mb-4 mt-8 flex items-end justify-between gap-[18px] max-[620px]:mt-6 max-[620px]:flex-col max-[620px]:items-stretch max-[620px]:gap-3" aria-label={t("home.filter")}>
-        <div>
+      <section className="mb-4 mt-8 flex items-end justify-between gap-3 max-[620px]:mt-6" aria-label={t("home.filter")}>
+        <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2.5 max-[620px]:mb-2.5">
             <h2 className="m-0 text-[22px] font-semibold leading-none text-[#202A33] dark:text-[#EDF3F6] max-[620px]:text-xl">{t("home.allServers")}</h2>
             <span className="text-xs text-[#7A8792]">{t("home.serverCount", { count: filteredServers.length })}</span>
           </div>
           <GroupSwitch tabs={groupTabs} currentTab={currentGroup} setCurrentTab={handleGroupChange} />
         </div>
-        <label className="relative inline-flex h-9 shrink-0 items-center max-[620px]:self-end">
+        <label className="relative inline-flex h-9 shrink-0 items-center">
           <select
             aria-label={t("home.sort")}
             value={sortType}

@@ -103,7 +103,11 @@
     "currentDownload": "当前下载",
     "noHistory": "暂无历史数据",
     "backToList": "返回服务器列表",
-    "trafficUsageRate": "流量使用率"
+    "trafficUsageRate": "流量使用率",
+    "remaining": "剩余",
+    "used": "已用",
+    "outbound": "出站",
+    "inbound": "入站"
   },
   "serverDetailChart": {
     "process": "进程数",

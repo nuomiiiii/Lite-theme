@@ -1,5 +1,5 @@
 import { ToggleButton, ToggleButtonGroup } from "@mui/material"
-import { MouseEvent, useEffect } from "react"
+import { FocusEvent, MouseEvent, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
 const GROUP_RADIUS_PX = 8
@@ -26,8 +26,17 @@ export default function GroupSwitch({
     if (value) setCurrentTab(value)
   }
 
+  const keepScroll = (event: FocusEvent<HTMLElement>) => {
+    const scroller = event.currentTarget.closest("[data-group-scroller]")
+    if (!(scroller instanceof HTMLElement)) return
+    const left = scroller.scrollLeft
+    requestAnimationFrame(() => {
+      scroller.scrollLeft = left
+    })
+  }
+
   return (
-    <div className="scrollbar-hidden overflow-x-auto">
+    <div className="scrollbar-hidden min-w-0 overflow-x-auto [overflow-anchor:none]" data-group-scroller>
       <ToggleButtonGroup
         exclusive
         size="small"
@@ -52,6 +61,7 @@ export default function GroupSwitch({
             fontSize: 13,
             fontWeight: 600,
             textTransform: "none",
+            scrollMargin: 0,
             ".dark &": { color: "#B2C0C9" },
           },
           "& .MuiToggleButton-root.Mui-selected": {
@@ -63,7 +73,7 @@ export default function GroupSwitch({
         }}
       >
         {tabs.map((tab) => (
-          <ToggleButton key={tab} value={tab}>
+          <ToggleButton key={tab} value={tab} onFocus={keepScroll}>
             {tab === "All" ? t("all", { defaultValue: "全部" }) : tab}
           </ToggleButton>
         ))}

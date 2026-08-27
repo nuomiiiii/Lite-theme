@@ -36,21 +36,21 @@ function Header() {
             sessionStorage.removeItem("selectedGroup")
             navigate("/")
           }}
-          className="flex min-w-0 items-center gap-2.5 text-left"
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
         >
           <img className="size-[38px] shrink-0 rounded-lg object-cover max-[620px]:size-[30px]" alt="site logo" src={customLogo} width={38} height={38} />
-          <span className="flex min-w-0 items-center gap-3.5 whitespace-nowrap">
+          <span className="flex min-w-0 items-center gap-2 sm:gap-3.5">
             {isLoading ? (
               <Skeleton className="h-5 w-40 rounded-md" />
             ) : (
               <>
-                <span className="truncate text-[19px] font-semibold leading-none text-[#202A33] dark:text-[#EDF3F6]">
+                <span className="max-w-[42%] shrink-0 truncate text-[19px] font-semibold leading-none text-[#202A33] dark:text-[#EDF3F6] max-[620px]:text-base sm:max-w-none">
                   {settingData?.data?.config?.site_name || "Lite"}
                 </span>
                 {settingData?.data?.config?.site_desc ? (
                   <>
-                    <span className="h-5 w-px shrink-0 bg-[#7A8792]/70" aria-hidden="true" />
-                    <span className="hidden min-w-0 truncate text-base text-[#7A8792] sm:inline">
+                    <span className="h-4 w-px shrink-0 self-center bg-[#7A8792]/70 sm:h-5" aria-hidden="true" />
+                    <span className="min-w-0 flex-1 text-[11px] leading-snug text-[#7A8792] line-clamp-2 sm:truncate sm:text-base sm:leading-none sm:line-clamp-1">
                       {settingData.data.config.site_desc}
                     </span>
                   </>

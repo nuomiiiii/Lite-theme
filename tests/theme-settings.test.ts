@@ -17,7 +17,7 @@ test("publishes the independent Lite-Theme identity", () => {
   assert.equal(existsSync(new URL("../komari-theme.json", import.meta.url)), false)
   assert.equal(manifest.name, "Lite-Theme")
   assert.equal(manifest.short, "lite-theme")
-  assert.equal(manifest.version, "1.0.0")
+  assert.equal(manifest.version, "1.0.1")
   assert.equal(manifest.author, "Nomi")
   assert.equal(manifest.url, "https://github.com/nuomiiiii/Lite-theme")
   assert.equal(manifest.preview, "preview.png")
@@ -69,6 +69,13 @@ test("keeps language, appearance and login in the public header", () => {
   assert.doesNotMatch(themeSwitcher, /SunMoon/)
 })
 
+test("shows the site description after the header divider on mobile", () => {
+  assert.match(header, /site_desc/)
+  assert.doesNotMatch(header, /hidden min-w-0 truncate text-base text-\[#7A8792\] sm:inline/)
+  assert.match(header, /line-clamp-2/)
+  assert.match(header, /text-\[11px\] leading-snug/)
+})
+
 test("does not render IP addresses on public cards or detail identity", () => {
   assert.doesNotMatch(serverCard, /\.ipv[46]|IPv[46]/)
   assert.doesNotMatch(detailOverview, /\.ipv[46]|IPv[46]/)
@@ -90,4 +97,6 @@ test("lets visitors isolate one or more ping-task curves", () => {
   assert.match(networkChart, /toggleChart/)
   assert.match(networkChart, /monitor\.allTasks/)
   assert.match(networkChart, /HISTORY_TIME_OPTIONS/)
+  assert.match(networkChart, /selectedTaskSampleCount/)
+  assert.match(networkChart, /formatCompactTime/)
 })

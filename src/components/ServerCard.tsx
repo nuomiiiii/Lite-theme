@@ -14,15 +14,15 @@ import PlanInfo from "./PlanInfo"
 import BillingInfo from "./billingInfo"
 
 function ResourceMetric({ label, value, percent }: { label: string; value: string; percent: number }) {
-  const color = METER_TONE_COLOR[resourceUsageTone(percent)]
+  const barColor = METER_TONE_COLOR[resourceUsageTone(percent)]
   return (
     <div className="min-w-0">
       <div className="flex min-w-0 items-baseline justify-between gap-2">
         <span className="truncate text-xs text-[#566571] dark:text-[#B2C0C9]">{label}</span>
-        <strong className="shrink-0 text-[18px] font-semibold tabular-nums" style={{ color }}>{value}</strong>
+        <strong className="shrink-0 text-[18px] font-semibold tabular-nums text-[#202A33] dark:text-[#EDF3F6]">{value}</strong>
       </div>
       <div className="mt-1.5 h-[5px] overflow-hidden rounded-[3px] bg-[#E9EEF1] dark:bg-[#2B3740]">
-        <span className="block h-full rounded-[3px]" style={{ width: `${Math.min(100, Math.max(0, percent))}%`, background: color }} />
+        <span className="block h-full rounded-[3px]" style={{ width: `${Math.min(100, Math.max(0, percent))}%`, background: barColor }} />
       </div>
     </div>
   )
@@ -113,10 +113,10 @@ export default function ServerCard({
         <TrafficBar used={trafficUsed} limit={info.traffic_limit} resetDay={info.traffic_reset_day} limitType={info.traffic_limit_type} />
       )}
 
-      {(parsedData?.billingDataMod || parsedData?.planDataMod) && (
+      {(parsedData?.billingDataMod || parsedData?.planDataMod || serverInfo.tags) && (
         <footer className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 bg-[#FBFCFD] px-[22px] py-2 dark:bg-[#171E24] max-[620px]:px-4">
           {parsedData?.billingDataMod ? <BillingInfo parsedData={parsedData} compact showProgress={false} /> : <span />}
-          {parsedData?.planDataMod && <PlanInfo parsedData={parsedData} />}
+          {(parsedData?.planDataMod || serverInfo.tags) && <PlanInfo parsedData={parsedData} tags={serverInfo.tags} />}
         </footer>
       )}
     </article>

@@ -17,6 +17,11 @@ export function historyMaxPoints(hours: number): number {
   return 300
 }
 
+export function probeHistoryMaxPoints(hours: number): number {
+  if (hours <= 1) return 720
+  return historyMaxPoints(hours)
+}
+
 export function historyRefetchMs(hours: number): number {
   if (hours <= 24) return 30_000
   if (hours <= 168) return 120_000

@@ -1,7 +1,7 @@
 import { SharedClient } from "@/hooks/use-rpc2"
 import { MonitorResponse, ServerGroupResponse, SettingResponse } from "@/types/lite-api"
 
-import { historyMaxPoints } from "./history-range"
+import { historyMaxPoints, probeHistoryMaxPoints } from "./history-range"
 import { HomeLatencyByServer, mapPingStatsToHomeLatency } from "./home-latency"
 import { mergeAssignedPingMonitors, seedAssignedHomeLatency, unionPingTasksForClient } from "./ping-display"
 import { orderMonitorsByPingTasks } from "./ping-task-order"
@@ -196,11 +196,14 @@ function monitorDataFromMetricSeries(
 
     for (const point of points) {
       const time = metricPointTime(point)
-      if (time === null || point.value === null || point.value === undefined) continue
+      if (time === null) continue
       const count = metricPointCount(point)
       const loss = lossPoints?.get(time)
+      const delay = point.value === null || point.value === undefined
+        ? null
+        : latencyWithoutLoss(point.value, count, loss)
       monitor.created_at.push(time)
-      monitor.avg_delay.push(latencyWithoutLoss(point.value, count, loss))
+      monitor.avg_delay.push(delay)
       monitor.packet_loss.push((loss?.ratio ?? (Number(point.value) < 0 ? 1 : 0)) * 100)
       monitor.sample_count.push(loss?.count ?? count)
     }
@@ -265,7 +268,7 @@ export async function fetchMonitor(serverId: number, hours = 24): Promise<Monito
   if (!uuid) return { success: true, data: [] }
 
   const serverName = nodes[uuid]?.name || String(serverId)
-  const maxPoints = historyMaxPoints(hours)
+  const maxPoints = probeHistoryMaxPoints(hours)
   const [metricData, recordData] = await Promise.all([
     fetchPingMetricSeries({ entity_id: uuid, hours }, maxPoints),
     fetchPingRecords(uuid, hours),

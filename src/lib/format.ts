@@ -15,3 +15,12 @@ export function formatSpeed(megabytesPerSecond: number): string {
   if (megabytesPerSecond >= 1) return `${megabytesPerSecond.toFixed(2)} M/s`
   return `${(megabytesPerSecond * 1024).toFixed(2)} K/s`
 }
+
+export function formatCompactTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  const month = (date.getMonth() + 1).toString().padStart(2, "0")
+  const day = date.getDate().toString().padStart(2, "0")
+  const hours = date.getHours().toString().padStart(2, "0")
+  const minutes = date.getMinutes().toString().padStart(2, "0")
+  return `${month}-${day} ${hours}:${minutes}`
+}

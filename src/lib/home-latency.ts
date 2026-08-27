@@ -70,11 +70,15 @@ export function hourPacketFillPercent(input: {
 }): number {
   const total = finiteOrNull(input.total)
   const valid = finiteOrNull(input.valid)
-  if (total !== null && total > 0 && valid !== null) {
-    return Math.min(100, Math.max(0, (valid / total) * 100))
+  if (total !== null) {
+    if (total <= 0) return 0
+    if (valid !== null) return Math.min(100, Math.max(0, (valid / total) * 100))
   }
-  const loss = finiteOrNull(input.packetLoss)
-  if (loss !== null) return Math.min(100, Math.max(0, 100 - loss))
+  if (valid !== null && valid > 0) {
+    const loss = finiteOrNull(input.packetLoss)
+    if (loss !== null) return Math.min(100, Math.max(0, 100 - loss))
+    return 100
+  }
   return 0
 }
 
@@ -178,8 +182,12 @@ export function mapPingStatsToHomeLatency(
     const taskId = String(stat.task_id || "").trim()
     if (!entityId || !taskId) continue
 
-    const latency = finiteOrNull(stat.latest) ?? finiteOrNull(stat.avg)
-    const packetLoss = finiteOrNull(stat.loss)
+    const total = finiteOrNull(stat.total)
+    const valid = finiteOrNull(stat.valid)
+    const latencyRaw = finiteOrNull(stat.latest) ?? finiteOrNull(stat.avg)
+    const hasSamples = total !== null ? total > 0 : valid !== null ? valid > 0 : latencyRaw !== null
+    const latency = hasSamples ? latencyRaw : null
+    const packetLoss = hasSamples ? finiteOrNull(stat.loss) : null
     const summary: HomeLatencyTaskSummary = {
       taskId,
       taskName: stat.name || taskNames.get(taskId) || `Task ${taskId}`,
@@ -187,9 +195,9 @@ export function mapPingStatsToHomeLatency(
       packetLoss,
       latencyHistory: [latency],
       packetLossHistory: [packetLoss],
-      updatedAt: Date.now(),
-      total: finiteOrNull(stat.total),
-      valid: finiteOrNull(stat.valid),
+      updatedAt: hasSamples ? Date.now() : null,
+      total,
+      valid,
       interval: finiteOrNull(stat.interval),
     }
     result[entityId] = [...(result[entityId] || []), summary]

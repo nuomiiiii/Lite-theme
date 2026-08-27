@@ -103,7 +103,11 @@
     "currentDownload": "Current download",
     "noHistory": "No history yet",
     "backToList": "Back to server list",
-    "trafficUsageRate": "Traffic usage"
+    "trafficUsageRate": "Traffic usage",
+    "remaining": "Left",
+    "used": "Used",
+    "outbound": "Out",
+    "inbound": "In"
   },
   "serverDetailChart": {
     "process": "Process",
