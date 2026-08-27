@@ -1,4 +1,5 @@
 import { SharedClient } from "@/hooks/use-rpc2"
+import { readLiveStatusCache, writeLiveStatusCache } from "@/lib/live-status-cache"
 import { getLiteNodes, normalizeLiteServerStatus } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 
@@ -7,8 +8,16 @@ import { WebSocketContext, WebSocketContextType } from "./websocket-context"
 const STATUS_POLL_MS = 5000
 const HISTORY_LIMIT = 12
 
+function liveStatusStorage(): Storage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
+}
+
 export const WebSocketProvider: React.FC<{ url?: string; children: React.ReactNode }> = ({ children }) => {
-  const [lastMessage, setLastMessage] = useState<{ data: string } | null>(null)
+  const [lastMessage, setLastMessage] = useState<{ data: string } | null>(() => readLiveStatusCache(liveStatusStorage()))
   const [messageHistory, setMessageHistory] = useState<{ data: string }[]>([])
   const [connected, setConnected] = useState(false)
   const [needReconnect, setNeedReconnect] = useState(false)
@@ -25,6 +34,7 @@ export const WebSocketProvider: React.FC<{ url?: string; children: React.ReactNo
       if (!activeRef.current) return
 
       const message = { data: JSON.stringify(normalizeLiteServerStatus(status, nodes)) }
+      writeLiveStatusCache(liveStatusStorage(), message.data)
       setLastMessage(message)
       setMessageHistory((previous) => [message, ...previous].slice(0, HISTORY_LIMIT))
       setConnected(true)

@@ -62,6 +62,9 @@ export default defineConfig(({ mode }) => {
       host: "127.0.0.1",
       port: 5373,
       strictPort: true,
+      watch: {
+        ignored: ["**/release/**"],
+      },
       proxy: {
         "/api": {
           target: process.env.VITE_API_TARGET,

@@ -19,10 +19,11 @@ test("keeps the network chart canvas mounted during initial data loading", () =>
   assert.match(chartSource, /hasChartData \? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"/)
 })
 
-test("loads monitor data only while the network tab is visible", () => {
-  assert.match(chartSource, /enabled:\s*show/)
+test("prefetches monitor data on the detail page and only refetches while the network tab is visible", () => {
+  assert.match(chartSource, /enabled:\s*true/)
   assert.match(chartSource, /refetchOnWindowFocus:\s*false/)
   assert.match(chartSource, /refetchInterval:\s*show\s*\?/)
+  assert.doesNotMatch(chartSource, /enabled:\s*show/)
 })
 
 test("lists assigned probe tasks even when no samples have arrived", () => {

@@ -101,10 +101,20 @@ test("applies homepage sort from theme settings", () => {
 test("keeps public dashboard polling cheap", () => {
   assert.match(websocket, /STATUS_POLL_MS = 5000/)
   assert.match(websocket, /getLiteNodes\(false\)/)
+  assert.match(websocket, /readLiveStatusCache/)
+  assert.match(websocket, /writeLiveStatusCache/)
   assert.match(liteApi, /public:getPingMetricStats/)
   assert.match(liteApi, /historyMaxPoints/)
   assert.match(serverPage, /refetchInterval: 5_000/)
   assert.doesNotMatch(serverPage, /max-\[620px\]:flex-col/)
+})
+
+test("shows a loader instead of a blank page while public settings load", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
+  assert.match(app, /Loader visible/)
+  assert.match(app, /useLayoutEffect/)
+  assert.doesNotMatch(app, /isCustomCodeInjected/)
+  assert.doesNotMatch(app, /if \(!settingData\) \{\s*return null/)
 })
 
 test("keeps assigned ping tasks on the public monitor even without metric points", () => {

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useLayoutEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom"
 
@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary"
 import Footer from "./components/Footer"
 import Header, { RefreshToast } from "./components/Header"
 import PrivateAccessGate from "./components/PrivateAccessGate"
+import { Loader } from "./components/loading/Loader"
 import { useBackground } from "./hooks/use-background"
 import { useTheme } from "./hooks/use-theme"
 import { InjectContext } from "./lib/inject"
@@ -27,14 +28,12 @@ const MainApp: React.FC = () => {
   })
   const { i18n } = useTranslation()
   const { setTheme } = useTheme()
-  const [isCustomCodeInjected, setIsCustomCodeInjected] = useState(false)
   const { backgroundImage: customBackgroundImage } = useBackground()
   const configuredLanguage = settingData?.data?.config?.language
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (settingData?.data?.config?.custom_code) {
-      InjectContext(settingData?.data?.config?.custom_code)
-      setIsCustomCodeInjected(true)
+      void InjectContext(settingData.data.config.custom_code)
     }
   }, [settingData?.data?.config?.custom_code])
 
@@ -60,11 +59,11 @@ const MainApp: React.FC = () => {
   }
 
   if (!settingData) {
-    return null
-  }
-
-  if (settingData?.data?.config?.custom_code && !isCustomCodeInjected) {
-    return null
+    return (
+      <div className="flex min-h-96 items-center justify-center">
+        <Loader visible />
+      </div>
+    )
   }
 
   if (settingData.data.private_site) {
