@@ -25,3 +25,15 @@ export function resourceUsageTone(percent: number): MeterTone {
   if (percent >= RESOURCE_GREEN_MAX) return "amber"
   return "green"
 }
+
+export function cpuCoreCount(cores: unknown): number {
+  const value = Number(cores)
+  if (!Number.isFinite(value) || value <= 0) return 1
+  return Math.max(1, Math.round(value))
+}
+
+export function loadUsagePercent(load1: unknown, cores: unknown): number {
+  const load = Number(load1)
+  if (!Number.isFinite(load) || load < 0) return 0
+  return Math.min(100, (load / cpuCoreCount(cores)) * 100)
+}

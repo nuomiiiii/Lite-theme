@@ -21,6 +21,8 @@ export interface LiteServer {
   online?: boolean
   // Lite 后端 tags 字段透传，用于读取 <JPY> 等内嵌元标签。
   tags?: string
+  // 服务器设置里的带宽，主题开关打开后显示在卡片右下角。
+  bandwidth?: string
   // Lite 后端 currency 字段透传，作为最后的兜底。
   currency?: string
 }
@@ -29,6 +31,7 @@ export interface LiteServerHost {
   platform: string
   platform_version: string
   cpu: string[]
+  cpu_cores?: number
   gpu: string[]
   mem_total: number
   disk_total: number

@@ -3,8 +3,9 @@ import ServerLatencySummary from "@/components/ServerLatencySummary"
 import TrafficBar from "@/components/TrafficBar"
 import { formatBytes, formatSpeed } from "@/lib/format"
 import type { HomeLatencyTaskSummary } from "@/lib/home-latency"
-import { METER_TONE_COLOR, resourceUsageTone } from "@/lib/meter-tone"
+import { METER_TONE_COLOR, loadUsagePercent, resourceUsageTone } from "@/lib/meter-tone"
 import { GetOsName } from "@/lib/logo-class"
+import { readShowServerBandwidth, serverBandwidthLabel } from "@/lib/theme-config"
 import { calcTrafficUsed, cn, formatLiteInfo, parsePublicNote } from "@/lib/utils"
 import { LiteServer } from "@/types/lite-api"
 import { useTranslation } from "react-i18next"
@@ -46,8 +47,11 @@ export default function ServerCard({
     ? `${Math.floor(info.uptime / 86400)} ${t("serverCard.days")}`
     : `${Math.floor(info.uptime / 3600)} ${t("serverCard.hours")}`
   const trafficUsed = calcTrafficUsed(info.net_out_transfer, info.net_in_transfer, info.traffic_limit_type)
-  const cores = info.cpu_info.filter(Boolean).length || 1
-  const loadPercent = Math.min(100, (Number(info.load_1) / cores) * 100)
+  const loadPercent = loadUsagePercent(info.load_1, info.cpu_cores)
+  const bandwidth = serverBandwidthLabel(serverInfo.bandwidth)
+  const showBandwidth = readShowServerBandwidth() && Boolean(bandwidth)
+  const showTags = Boolean(parsedData?.planDataMod || serverInfo.tags)
+  const showFooter = Boolean(parsedData?.billingDataMod || showTags || showBandwidth)
   const openDetail = () => {
     navigate(`/server/${serverInfo.id}`)
   }
@@ -113,10 +117,19 @@ export default function ServerCard({
         <TrafficBar used={trafficUsed} limit={info.traffic_limit} resetDay={info.traffic_reset_day} limitType={info.traffic_limit_type} />
       )}
 
-      {(parsedData?.billingDataMod || parsedData?.planDataMod || serverInfo.tags) && (
+      {(showFooter) && (
         <footer className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 bg-[#FBFCFD] px-[22px] py-2 dark:bg-[#171E24] max-[620px]:px-4">
           {parsedData?.billingDataMod ? <BillingInfo parsedData={parsedData} compact showProgress={false} /> : <span />}
-          {(parsedData?.planDataMod || serverInfo.tags) && <PlanInfo parsedData={parsedData} tags={serverInfo.tags} />}
+          {(showTags || showBandwidth) && (
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+              {showTags ? <PlanInfo parsedData={parsedData} tags={serverInfo.tags} /> : null}
+              {showBandwidth ? (
+                <span className="whitespace-nowrap rounded px-[7px] py-1 text-[10px] font-medium text-[#566571] bg-[#EEF2F4] dark:bg-[#26313A] dark:text-[#B2C0C9]">
+                  {bandwidth}
+                </span>
+              ) : null}
+            </div>
+          )}
         </footer>
       )}
     </article>

@@ -1,7 +1,7 @@
 {
   "name": "lite-theme",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test tests/ping-task-order.test.ts tests/ping-display.test.ts tests/resource-history.test.ts tests/currency-label.test.ts tests/network-chart-stability.test.ts tests/home-latency.test.ts tests/meter-tone.test.ts tests/theme-settings.test.ts tests/billing-status.test.ts tests/site-logo.test.ts tests/favicon.test.ts tests/server-detail-route.test.ts tests/lite-node-list.test.ts tests/react-runtime.test.ts tests/public-note.test.ts tests/public-dashboard.test.ts tests/region.test.ts tests/server-tags.test.ts tests/live-traffic.test.ts",
+    "test": "node --test tests/ping-task-order.test.ts tests/ping-display.test.ts tests/resource-history.test.ts tests/currency-label.test.ts tests/network-chart-stability.test.ts tests/home-latency.test.ts tests/meter-tone.test.ts tests/theme-settings.test.ts tests/theme-config.test.ts tests/billing-status.test.ts tests/site-logo.test.ts tests/favicon.test.ts tests/server-detail-route.test.ts tests/lite-node-list.test.ts tests/react-runtime.test.ts tests/public-note.test.ts tests/public-dashboard.test.ts tests/region.test.ts tests/server-tags.test.ts tests/live-traffic.test.ts",
     "lint:fix": "eslint --fix .",
     "format": "prettier --write .",
     "preview": "vite preview"

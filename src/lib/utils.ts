@@ -53,6 +53,7 @@ export function formatLiteInfo(now: number, serverInfo: LiteServer) {
     boot_time_string: serverInfo.host.boot_time ? dayjs(serverInfo.host.boot_time * 1000).format("YYYY-MM-DD HH:mm:ss") : "",
     platform_version: serverInfo.host.platform_version || "",
     cpu_info: serverInfo.host.cpu || [],
+    cpu_cores: serverInfo.host.cpu_cores,
     gpu_info: serverInfo.host.gpu || [],
     load_1: serverInfo.state.load_1?.toFixed(2) || 0.0,
     load_5: serverInfo.state.load_5?.toFixed(2) || 0.0,
@@ -655,6 +656,7 @@ export const normalizeLiteServerStatus = (data: any, nodes: Record<string, any>)
       platform: server.os,
       platform_version: server.kernel_version,
       cpu: [server.cpu_name],
+      cpu_cores: Number(server.cpu_cores) || 0,
       gpu: server.gpu_name ? [server.gpu_name] : [],
       mem_total: server.mem_total,
       disk_total: server.disk_total,
@@ -720,6 +722,7 @@ export const normalizeLiteServerStatus = (data: any, nodes: Record<string, any>)
       expired_at: server.expired_at || "",
       online: status ? status.online === true : false,
       tags: typeof server.tags === "string" ? server.tags : "",
+      bandwidth: typeof server.bandwidth === "string" ? server.bandwidth.trim() : "",
       currency: typeof server.currency === "string" ? server.currency : "",
     }
   })

@@ -9,6 +9,7 @@ declare global {
     EnableVerticalCard: boolean
     ForceShowMap: boolean
     ForcePeakCutEnabled: boolean
+    ShowServerBandwidth?: boolean
     HomeSortType?: string
     HomeSortOrder?: string
     DefaultBillingCurrency?: string

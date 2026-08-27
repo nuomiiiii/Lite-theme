@@ -4,7 +4,7 @@ import { formatBytes } from "@/lib/format"
 import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
 import { fetchResourceHistory, type ResourceHistoryPoint } from "@/lib/lite-api"
 import { clampPercent } from "@/lib/resource-history"
-import { METER_TONE_COLOR, resourceUsageTone } from "@/lib/meter-tone"
+import { METER_TONE_COLOR, cpuCoreCount, resourceUsageTone } from "@/lib/meter-tone"
 import { RESOURCE_COLORS, THEME } from "@/lib/theme-tokens"
 import { calcTrafficUsed, cn, formatLiteInfo } from "@/lib/utils"
 import { LiteWebsocketResponse } from "@/types/lite-api"
@@ -211,7 +211,7 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
   const uptime = info.uptime >= 86400
     ? `${Math.floor(info.uptime / 86400)} ${t("serverDetail.days")} ${Math.floor((info.uptime % 86400) / 3600)} ${t("serverDetail.hours")}`
     : `${Math.floor(info.uptime / 3600)} ${t("serverDetail.hours")}`
-  const coreCount = info.cpu_info.filter(Boolean).length || 1
+  const coreCount = cpuCoreCount(info.cpu_cores)
 
   return (
     <div className="space-y-4">

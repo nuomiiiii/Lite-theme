@@ -17,7 +17,7 @@ test("publishes the independent Lite-Theme identity", () => {
   assert.equal(existsSync(new URL("../komari-theme.json", import.meta.url)), false)
   assert.equal(manifest.name, "Lite-Theme")
   assert.equal(manifest.short, "lite-theme")
-  assert.equal(manifest.version, "1.0.1")
+  assert.equal(manifest.version, "1.0.2")
   assert.equal(manifest.author, "Nomi")
   assert.equal(manifest.url, "https://github.com/nuomiiiii/Lite-theme")
   assert.equal(manifest.preview, "preview.png")
@@ -31,6 +31,7 @@ test("keeps only settings used by the fixed default card experience", () => {
     "CustomLogo",
     "ForceTheme",
     "ForcePeakCutEnabled",
+    "ShowServerBandwidth",
     "DefaultBillingCurrency",
     "CnySymbolStyle",
   ])
@@ -54,6 +55,16 @@ test("does not expose alternate card, map or decoration switches", () => {
   }
   assert.doesNotMatch(utils, /TrafficResetDayOverrides/)
   assert.doesNotMatch(utils, /ServerBillingCurrencyOverrides/)
+})
+
+test("shows server bandwidth on cards only when the theme switch is on", () => {
+  const setting = settings.find((item) => item.key === "ShowServerBandwidth")
+  assert.equal(setting?.type, "switch")
+  assert.equal(setting?.default, false)
+  assert.match(utils, /bandwidth: typeof server\.bandwidth === "string" \? server\.bandwidth\.trim\(\) : ""/)
+  assert.match(serverCard, /readShowServerBandwidth/)
+  assert.match(serverCard, /serverBandwidthLabel/)
+  assert.doesNotMatch(serverCard, /planDataMod\?\.bandwidth/)
 })
 
 test("keeps language, appearance and login in the public header", () => {
