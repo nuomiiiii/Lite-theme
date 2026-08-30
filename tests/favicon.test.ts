@@ -6,7 +6,7 @@ test("uses the Lite favicon without overriding it from the theme header", () => 
   const index = readFileSync(new URL("../index.html", import.meta.url), "utf8")
   const header = readFileSync(new URL("../src/components/Header.tsx", import.meta.url), "utf8")
 
-  assert.match(index, /<link rel="icon" href="\/favicon\.png\?v=lite-icon-mark1" type="image\/png" \/>/)
+  assert.match(index, /<link rel="icon" href="\/favicon\.png\?v=lite-icon-tab1" type="image\/png" \/>/)
   assert.doesNotMatch(index, /rel="icon"[^>]+apple-touch-icon/)
   assert.doesNotMatch(header, /link\[rel\*=['"]icon['"]\]/)
   assert.doesNotMatch(header, /shortcut icon/)
