@@ -96,7 +96,7 @@ const MainApp: React.FC = () => {
       >
         <RefreshToast />
         <Header />
-        <main className="lite-page-shell z-20 pt-5 pb-2 md:pt-6 max-[620px]:pt-3 max-[620px]:pb-2">
+        <main className="lite-page-shell z-20 pt-5 pb-[max(0.5rem,var(--safe-area-bottom))] md:pt-6 max-[620px]:pt-3">
           <Routes>
             <Route path="/" element={<Server />} />
             <Route path="/server/:id" element={<ServerDetail />} />

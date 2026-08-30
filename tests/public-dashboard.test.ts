@@ -91,6 +91,21 @@ test("header and page body share the same content shell", () => {
   assert.doesNotMatch(header, /max-w-\[1420px\]/)
 })
 
+test("public PWA uses cover viewport and root safe-area insets", () => {
+  const index = readFileSync(new URL("../index.html", import.meta.url), "utf8")
+  const header = readFileSync(new URL("../src/components/Header.tsx", import.meta.url), "utf8")
+  const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
+  assert.match(index, /viewport-fit=cover/)
+  assert.match(index, /apple-mobile-web-app-status-bar-style" content="black-translucent"/)
+  assert.match(index, /rel="apple-touch-icon" href="\/apple-touch-icon\.png/)
+  assert.match(css, /--safe-area-top: env\(safe-area-inset-top, 0px\)/)
+  assert.match(header, /pt-\[var\(--safe-area-top\)\]/)
+  assert.match(header, /backdrop-blur-sm/)
+  assert.match(header, /bg-white\/96/)
+  assert.match(app, /var\(--safe-area-bottom\)/)
+})
+
 test("applies homepage sort from theme settings", () => {
   assert.match(themeHomeSort, /HomeSortType/)
   assert.match(themeHomeSort, /HomeSortOrder/)

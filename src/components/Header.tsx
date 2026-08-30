@@ -28,7 +28,7 @@ function Header() {
   })
 
   return (
-    <header className="lite-page-header sticky top-0 z-30 h-[82px] border-b border-[#DDE4E9] bg-white/96 backdrop-blur-sm dark:border-[#2D3943] dark:bg-[#141B21]/97 max-[620px]:h-16">
+    <header className="lite-page-header sticky top-0 z-30 border-b border-[#DDE4E9] bg-white/96 pt-[var(--safe-area-top)] h-[calc(82px+var(--safe-area-top))] backdrop-blur-sm dark:border-[#2D3943] dark:bg-[#141B21]/97 max-[620px]:h-[calc(4rem+var(--safe-area-top))]">
       <div className="lite-page-shell flex h-full items-center justify-between gap-6 max-[620px]:gap-2">
         <button
           type="button"
