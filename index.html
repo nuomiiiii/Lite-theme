@@ -13,10 +13,15 @@
       } catch (e) {
         document.documentElement.classList.add("light")
       }
-      const standalone =
-        window.matchMedia?.("(display-mode: standalone)").matches ||
-        window.matchMedia?.("(display-mode: fullscreen)").matches ||
-        window.navigator.standalone === true
+      const isIOS =
+        /iP(hone|ad|od)/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+      const standalone = isIOS
+        ? window.navigator.standalone === true
+        : Boolean(
+            window.matchMedia?.("(display-mode: standalone)").matches ||
+              window.matchMedia?.("(display-mode: fullscreen)").matches,
+          )
       document.documentElement.classList.toggle("lite-standalone", Boolean(standalone))
     </script>
     <style>
@@ -27,17 +32,17 @@
 
       :root {
         color-scheme: light;
-        --bg: #ffffff;
+        --bg: #F4F7F9;
       }
 
       html.dark {
         color-scheme: dark;
-        --bg: #161c24;
+        --bg: #141B21;
       }
 
       html.light {
         color-scheme: light;
-        --bg: #ffffff;
+        --bg: #F4F7F9;
       }
 
       html {
@@ -74,8 +79,14 @@
         const root = document.documentElement
 
         function updateThemeColor(isDark) {
-          const themeColor = isDark ? "#161c24" : "#ffffff"
-          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
+          const themeColor = isDark ? "#141B21" : "#FFFFFF"
+          let meta = document.querySelector('meta[name="theme-color"]')
+          if (!meta) {
+            meta = document.createElement("meta")
+            meta.setAttribute("name", "theme-color")
+            document.head.appendChild(meta)
+          }
+          meta.setAttribute("content", themeColor)
         }
 
         function setTheme(newTheme) {
@@ -111,12 +122,39 @@
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.png?v=lite-icon-0e86dd" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const standalone = document.documentElement.classList.contains("lite-standalone")
+        const viewport = document.querySelector('meta[name="viewport"]')
+        if (viewport) {
+          viewport.setAttribute(
+            "content",
+            standalone
+              ? "width=device-width, initial-scale=1.0, viewport-fit=cover"
+              : "width=device-width, initial-scale=1.0",
+          )
+        }
+        const syncViewportHeight = () => {
+          if (document.documentElement.classList.contains("lite-standalone")) {
+            document.documentElement.style.removeProperty("--app-viewport-height")
+            return
+          }
+          const height = window.visualViewport?.height || window.innerHeight
+          if (height) {
+            document.documentElement.style.setProperty("--app-viewport-height", `${Math.round(height)}px`)
+          }
+        }
+        syncViewportHeight()
+        window.visualViewport?.addEventListener("resize", syncViewportHeight)
+        window.visualViewport?.addEventListener("scroll", syncViewportHeight)
+      })()
+    </script>
     <title>Lite</title>
     <meta name="description" content="Lite server monitor." />
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="hsl(0 0% 98%)" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
