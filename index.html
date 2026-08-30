@@ -13,6 +13,11 @@
       } catch (e) {
         document.documentElement.classList.add("light")
       }
+      const standalone =
+        window.matchMedia?.("(display-mode: standalone)").matches ||
+        window.matchMedia?.("(display-mode: fullscreen)").matches ||
+        window.navigator.standalone === true
+      document.documentElement.classList.toggle("lite-standalone", Boolean(standalone))
     </script>
     <style>
       /* Prevent FOUC in Safari */
