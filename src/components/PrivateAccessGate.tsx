@@ -8,7 +8,7 @@ export default function PrivateAccessGate({ siteName, siteDesc }: { siteName: st
   const customLogo = useSiteLogo()
 
   return (
-    <div className="flex min-h-[var(--app-viewport-height,100svh)] items-center justify-center p-4 pt-[max(1rem,var(--safe-area-top))] pb-[max(1rem,var(--safe-area-bottom))]">
+    <div className="flex min-h-screen items-center justify-center p-4 pt-[max(1rem,var(--safe-area-top))] pb-[max(1rem,var(--safe-area-bottom))]">
       <Card className="w-full max-w-sm space-y-5 rounded-3xl border-neutral-200/70 bg-white/85 p-6 shadow-2xl shadow-black/5 backdrop-blur-xl dark:border-neutral-800/70 dark:bg-neutral-950/80">
         <section className="flex items-center gap-3">
           <img src={customLogo} alt="site logo" className="h-10 w-10 rounded-xl object-cover" />

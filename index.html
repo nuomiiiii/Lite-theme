@@ -13,15 +13,10 @@
       } catch (e) {
         document.documentElement.classList.add("light")
       }
-      const isIOS =
-        /iP(hone|ad|od)/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-      const standalone = isIOS
-        ? window.navigator.standalone === true
-        : Boolean(
-            window.matchMedia?.("(display-mode: standalone)").matches ||
-              window.matchMedia?.("(display-mode: fullscreen)").matches,
-          )
+      const standalone =
+        window.matchMedia?.("(display-mode: standalone)").matches ||
+        window.matchMedia?.("(display-mode: fullscreen)").matches ||
+        window.navigator.standalone === true
       document.documentElement.classList.toggle("lite-standalone", Boolean(standalone))
     </script>
     <style>
@@ -32,17 +27,17 @@
 
       :root {
         color-scheme: light;
-        --bg: #F4F7F9;
+        --bg: #ffffff;
       }
 
       html.dark {
         color-scheme: dark;
-        --bg: #141B21;
+        --bg: #161c24;
       }
 
       html.light {
         color-scheme: light;
-        --bg: #F4F7F9;
+        --bg: #ffffff;
       }
 
       html {
@@ -79,14 +74,8 @@
         const root = document.documentElement
 
         function updateThemeColor(isDark) {
-          const themeColor = isDark ? "#141B21" : "#FFFFFF"
-          let meta = document.querySelector('meta[name="theme-color"]')
-          if (!meta) {
-            meta = document.createElement("meta")
-            meta.setAttribute("name", "theme-color")
-            document.head.appendChild(meta)
-          }
-          meta.setAttribute("content", themeColor)
+          const themeColor = isDark ? "#161c24" : "#ffffff"
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
         }
 
         function setTheme(newTheme) {
@@ -121,40 +110,13 @@
       })()
     </script>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.png?v=lite-icon-0e86dd" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      (() => {
-        const standalone = document.documentElement.classList.contains("lite-standalone")
-        const viewport = document.querySelector('meta[name="viewport"]')
-        if (viewport) {
-          viewport.setAttribute(
-            "content",
-            standalone
-              ? "width=device-width, initial-scale=1.0, viewport-fit=cover"
-              : "width=device-width, initial-scale=1.0",
-          )
-        }
-        const syncViewportHeight = () => {
-          if (document.documentElement.classList.contains("lite-standalone")) {
-            document.documentElement.style.removeProperty("--app-viewport-height")
-            return
-          }
-          const height = window.visualViewport?.height || window.innerHeight
-          if (height) {
-            document.documentElement.style.setProperty("--app-viewport-height", `${Math.round(height)}px`)
-          }
-        }
-        syncViewportHeight()
-        window.visualViewport?.addEventListener("resize", syncViewportHeight)
-        window.visualViewport?.addEventListener("scroll", syncViewportHeight)
-      })()
-    </script>
+    <link rel="icon" href="/favicon.png?v=lite-icon-mark1" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Lite</title>
     <meta name="description" content="Lite server monitor." />
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="theme-color" content="hsl(0 0% 98%)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -162,7 +124,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=lite-icon-0e86dd" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=lite-icon-mark1" />
   </head>
   <body>
     <div id="root"></div>

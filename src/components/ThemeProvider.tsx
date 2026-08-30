@@ -1,4 +1,3 @@
-import { applyChromeThemeColor } from "@/lib/chrome-color"
 import { ReactNode, createContext, useEffect, useState } from "react"
 
 export type Theme = "dark" | "light" | "system"
@@ -33,12 +32,14 @@ export function ThemeProvider({ children, storageKey = "vite-ui-theme" }: ThemeP
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 
       root.classList.add(systemTheme)
-      applyChromeThemeColor(systemTheme === "dark")
+      const themeColor = systemTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)"
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
       return
     }
 
     root.classList.add(theme)
-    applyChromeThemeColor(theme === "dark")
+    const themeColor = theme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)"
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
   }, [theme])
 
   const value = {

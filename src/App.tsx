@@ -90,7 +90,7 @@ const MainApp: React.FC = () => {
         />
       )}
       <div
-        className={cn("flex min-h-[var(--app-viewport-height,100svh)] w-full flex-col", {
+        className={cn("flex min-h-screen w-full flex-col", {
           "bg-background": !customBackgroundImage,
         })}
       >
