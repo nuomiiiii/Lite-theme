@@ -2,16 +2,11 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { ModeToggle } from "@/components/ThemeSwitcher"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSiteLogo } from "@/hooks/use-site-logo"
-import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { fetchSetting } from "@/lib/lite-api"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@mui/material"
-import { AnimatePresence, m } from "framer-motion"
-import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-
-import { LoadingSpinner } from "./loading/Loader"
 
 const BRAND = "#0E86DD"
 
@@ -80,35 +75,6 @@ function Header() {
         </nav>
       </div>
     </header>
-  )
-}
-
-export function RefreshToast() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { needReconnect } = useWebSocketContext()
-
-  useEffect(() => {
-    if (!needReconnect) return
-    sessionStorage.removeItem("needRefresh")
-    const timer = window.setTimeout(() => navigate(0), 1000)
-    return () => window.clearTimeout(timer)
-  }, [navigate, needReconnect])
-
-  if (!needReconnect) return null
-
-  return (
-    <AnimatePresence>
-      <m.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        className="fixed left-1/2 top-6 z-[999] flex -translate-x-1/2 items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-lg"
-      >
-        <LoadingSpinner />
-        <p className="text-xs font-medium">{t("refreshing")}...</p>
-      </m.div>
-    </AnimatePresence>
   )
 }
 

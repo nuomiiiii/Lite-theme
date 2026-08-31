@@ -10,7 +10,7 @@ import { MotionProvider } from "./components/motion/motion-provider"
 import { StatusProvider } from "./context/status-provider"
 import { WebSocketProvider } from "./context/websocket-provider"
 import { RPC2Provider } from "./hooks/use-rpc2"
-import "./i18n"
+import { i18nReady } from "./i18n"
 import "./index.css"
 
 const queryClient = new QueryClient({
@@ -22,22 +22,24 @@ const queryClient = new QueryClient({
   },
 })
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <RPC2Provider>
-    <MotionProvider>
-      <ThemeProvider storageKey="vite-ui-theme">
-        <MuiThemeBridge>
-          <ThemeColorManager />
-          <QueryClientProvider client={queryClient}>
-            <WebSocketProvider url="/api/v1/ws/server">
-              <StatusProvider>
-                <App />
-                {import.meta.env.DEV && <ReactQueryDevtools />}
-              </StatusProvider>
-            </WebSocketProvider>
-          </QueryClientProvider>
-        </MuiThemeBridge>
-      </ThemeProvider>
-    </MotionProvider>
-  </RPC2Provider>,
-)
+void i18nReady.then(() => {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <RPC2Provider>
+      <MotionProvider>
+        <ThemeProvider storageKey="vite-ui-theme">
+          <MuiThemeBridge>
+            <ThemeColorManager />
+            <QueryClientProvider client={queryClient}>
+              <WebSocketProvider>
+                <StatusProvider>
+                  <App />
+                  {import.meta.env.DEV && <ReactQueryDevtools />}
+                </StatusProvider>
+              </WebSocketProvider>
+            </QueryClientProvider>
+          </MuiThemeBridge>
+        </ThemeProvider>
+      </MotionProvider>
+    </RPC2Provider>,
+  )
+})

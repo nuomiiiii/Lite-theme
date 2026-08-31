@@ -79,11 +79,7 @@ export default function Servers() {
   }
 
   if (!connected && !lastMessage) {
-    return (
-      <div className="flex min-h-96 items-center justify-center">
-        <Loader visible />
-      </div>
-    )
+    return <Loader visible />
   }
 
   if (!websocketData) {

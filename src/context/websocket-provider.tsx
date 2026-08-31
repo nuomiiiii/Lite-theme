@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { WebSocketContext, WebSocketContextType } from "./websocket-context"
 
 const STATUS_POLL_MS = 5000
-const HISTORY_LIMIT = 12
 
 function liveStatusStorage(): Storage | null {
   try {
@@ -16,11 +15,9 @@ function liveStatusStorage(): Storage | null {
   }
 }
 
-export const WebSocketProvider: React.FC<{ url?: string; children: React.ReactNode }> = ({ children }) => {
+export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lastMessage, setLastMessage] = useState<{ data: string } | null>(() => readLiveStatusCache(liveStatusStorage()))
-  const [messageHistory, setMessageHistory] = useState<{ data: string }[]>([])
   const [connected, setConnected] = useState(false)
-  const [needReconnect, setNeedReconnect] = useState(false)
   const activeRef = useRef(false)
   const requestRunningRef = useRef(false)
 
@@ -36,7 +33,6 @@ export const WebSocketProvider: React.FC<{ url?: string; children: React.ReactNo
       const message = { data: JSON.stringify(normalizeLiteServerStatus(status, nodes)) }
       writeLiveStatusCache(liveStatusStorage(), message.data)
       setLastMessage(message)
-      setMessageHistory((previous) => [message, ...previous].slice(0, HISTORY_LIMIT))
       setConnected(true)
     } catch (error) {
       console.warn("加载服务器状态失败，等待下一轮：", error instanceof Error ? error.message : error)
@@ -59,17 +55,9 @@ export const WebSocketProvider: React.FC<{ url?: string; children: React.ReactNo
     }
   }, [updateData])
 
-  const reconnect = useCallback(() => {
-    void updateData()
-  }, [updateData])
-
   const contextValue: WebSocketContextType = {
     lastMessage,
     connected,
-    messageHistory,
-    reconnect,
-    needReconnect,
-    setNeedReconnect,
   }
 
   return <WebSocketContext.Provider value={contextValue}>{children}</WebSocketContext.Provider>

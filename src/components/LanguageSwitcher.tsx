@@ -1,13 +1,14 @@
+import { changePublicLanguage, preloadPublicLocales } from "@/i18n"
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material"
 import { Check, Languages } from "lucide-react"
 import { MouseEvent, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export const PUBLIC_LOCALES = [
-  { nameKey: "language.zh-CN", code: "zh-CN" },
-  { nameKey: "language.zh-TW", code: "zh-TW" },
-  { nameKey: "language.en-US", code: "en-US" },
-  { nameKey: "language.ja-JP", code: "ja-JP" },
+  { name: "简体中文", code: "zh-CN" },
+  { name: "繁體中文", code: "zh-TW" },
+  { name: "English", code: "en-US" },
+  { name: "日本語", code: "ja-JP" },
 ] as const
 
 export function LanguageSwitcher() {
@@ -15,9 +16,12 @@ export function LanguageSwitcher() {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const locale = i18n.resolvedLanguage || i18n.language
 
-  const openMenu = (event: MouseEvent<HTMLElement>) => setAnchor(event.currentTarget)
+  const openMenu = (event: MouseEvent<HTMLElement>) => {
+    void preloadPublicLocales()
+    setAnchor(event.currentTarget)
+  }
   const selectLocale = (code: string) => {
-    void i18n.changeLanguage(code)
+    void changePublicLanguage(code)
     setAnchor(null)
   }
 
@@ -43,7 +47,7 @@ export function LanguageSwitcher() {
       >
         {PUBLIC_LOCALES.map((item) => (
           <MenuItem key={item.code} selected={locale === item.code} onClick={() => selectLocale(item.code)} sx={{ borderRadius: "4px" }}>
-            <ListItemText>{t(item.nameKey)}</ListItemText>
+            <ListItemText>{item.name}</ListItemText>
             {locale === item.code && (
               <ListItemIcon sx={{ minWidth: 0, ml: 2 }}>
                 <Check className="size-4" />

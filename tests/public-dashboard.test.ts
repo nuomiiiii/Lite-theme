@@ -6,7 +6,7 @@ const footer = readFileSync(new URL("../src/components/Footer.tsx", import.meta.
 const serverPage = readFileSync(new URL("../src/pages/Server.tsx", import.meta.url), "utf8")
 const groupSwitch = readFileSync(new URL("../src/components/GroupSwitch.tsx", import.meta.url), "utf8")
 const languageSwitcher = readFileSync(new URL("../src/components/LanguageSwitcher.tsx", import.meta.url), "utf8")
-const i18n = readFileSync(new URL("../src/i18n.js", import.meta.url), "utf8")
+const i18n = readFileSync(new URL("../src/i18n.ts", import.meta.url), "utf8")
 const theme = readFileSync(new URL("../src/theme/createLiteTheme.ts", import.meta.url), "utf8")
 const websocket = readFileSync(new URL("../src/context/websocket-provider.tsx", import.meta.url), "utf8")
 const liteApi = readFileSync(new URL("../src/lib/lite-api.ts", import.meta.url), "utf8")
@@ -20,6 +20,25 @@ test("limits public languages to Chinese, English and Japanese", () => {
   assert.doesNotMatch(languageSwitcher, /ru-RU|es-ES|de-DE|ta-IN/)
   assert.match(i18n, /ja-JP/)
   assert.doesNotMatch(i18n, /ru-RU|es-ES|de-DE|ta-IN/)
+})
+
+test("loads only the current public language until the language menu is opened", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
+  const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8")
+  assert.doesNotMatch(i18n, /import enTranslation from/)
+  assert.doesNotMatch(i18n, /import zhCNTranslation from/)
+  assert.match(i18n, /import\("\.\/locales\/zh-CN\/translation\.json"\)/)
+  assert.match(i18n, /import\("\.\/locales\/zh-TW\/translation\.json"\)/)
+  assert.match(i18n, /import\("\.\/locales\/en\/translation\.json"\)/)
+  assert.match(i18n, /import\("\.\/locales\/ja\/translation\.json"\)/)
+  assert.match(i18n, /export function preloadPublicLocales/)
+  assert.match(i18n, /export async function changePublicLanguage/)
+  assert.match(i18n, /load: "currentOnly"/)
+  assert.match(main, /i18nReady/)
+  assert.match(languageSwitcher, /preloadPublicLocales\(\)/)
+  assert.match(languageSwitcher, /changePublicLanguage\(code\)/)
+  assert.match(app, /readStoredLanguage\(\)/)
+  assert.match(app, /changePublicLanguage\(lng, \{ persist: false \}\)/)
 })
 
 test("hides homepage sort, version and Ctrl+K", () => {
@@ -122,18 +141,48 @@ test("keeps public dashboard polling cheap", () => {
   assert.match(websocket, /getLiteNodes\(false\)/)
   assert.match(websocket, /readLiveStatusCache/)
   assert.match(websocket, /writeLiveStatusCache/)
+  assert.doesNotMatch(websocket, /messageHistory|HISTORY_LIMIT|needReconnect/)
   assert.match(liteApi, /public:getPingMetricStats/)
   assert.match(liteApi, /historyMaxPoints/)
   assert.match(serverPage, /refetchInterval: 5_000/)
   assert.doesNotMatch(serverPage, /max-\[620px\]:flex-col/)
 })
 
+test("drops unused public-dashboard leftovers", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
+  const header = readFileSync(new URL("../src/components/Header.tsx", import.meta.url), "utf8")
+  const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8")
+  const chart = readFileSync(new URL("../src/components/ui/chart.tsx", import.meta.url), "utf8")
+  const sortContext = readFileSync(new URL("../src/context/sort-context.ts", import.meta.url), "utf8")
+  const formatInfo = readFileSync(new URL("../src/lib/utils.ts", import.meta.url), "utf8")
+  assert.doesNotMatch(app, /RefreshToast/)
+  assert.doesNotMatch(header, /RefreshToast|needReconnect/)
+  assert.doesNotMatch(main, /url="\/api\/v1\/ws\/server"/)
+  assert.doesNotMatch(chart, /ChartLegend/)
+  assert.doesNotMatch(sortContext, /createContext|SortContext/)
+  assert.doesNotMatch(formatInfo, /boot_time_string|gpu_info/)
+  assert.equal(existsSync(new URL("../src/lib/theme-colors.ts", import.meta.url)), false)
+})
+
 test("shows a loader instead of a blank page while public settings load", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
-  assert.match(app, /Loader visible/)
+  const loader = readFileSync(new URL("../src/components/loading/Loader.tsx", import.meta.url), "utf8")
+  const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
+  assert.match(app, /<Header \/>/)
+  assert.match(app, /!settingData \? \(\s*<Loader visible \/>/)
   assert.match(app, /useLayoutEffect/)
   assert.doesNotMatch(app, /isCustomCodeInjected/)
   assert.doesNotMatch(app, /if \(!settingData\) \{\s*return null/)
+  assert.doesNotMatch(app, /fullscreen/)
+  assert.match(loader, /CircularProgress/)
+  assert.match(loader, /size=\{44\}/)
+  assert.match(loader, /#0E86DD/)
+  assert.match(loader, /common\.loading/)
+  assert.match(loader, /flex-1/)
+  assert.doesNotMatch(loader, /fullscreen/)
+  assert.doesNotMatch(loader, /min-h-dvh/)
+  assert.doesNotMatch(css, /hamster-loading/)
+  assert.doesNotMatch(loader, /hamster-spinner/)
 })
 
 test("keeps assigned ping tasks on the public monitor even without metric points", () => {
@@ -153,6 +202,7 @@ test("public locales share the visitor-facing copy keys", () => {
     "region.asia",
     "traffic.resetToday",
     "privateSite.title",
+    "common.loading",
   ]
   const locales = ["zh-CN", "zh-TW", "en", "ja"]
   for (const locale of locales) {

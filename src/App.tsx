@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query"
 import React, { useEffect, useLayoutEffect } from "react"
-import { useTranslation } from "react-i18next"
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom"
 
 import ErrorBoundary from "./components/ErrorBoundary"
 import Footer from "./components/Footer"
-import Header, { RefreshToast } from "./components/Header"
+import Header from "./components/Header"
 import PrivateAccessGate from "./components/PrivateAccessGate"
 import { Loader } from "./components/loading/Loader"
 import { useBackground } from "./hooks/use-background"
 import { useTheme } from "./hooks/use-theme"
+import { changePublicLanguage, readStoredLanguage, resolvePublicLanguage } from "./i18n"
 import { InjectContext } from "./lib/inject"
 import { fetchSetting } from "./lib/lite-api"
 import { cn } from "./lib/utils"
@@ -26,7 +26,6 @@ const MainApp: React.FC = () => {
     refetchOnWindowFocus: false,
     staleTime: 60_000,
   })
-  const { i18n } = useTranslation()
   const { setTheme } = useTheme()
   const { backgroundImage: customBackgroundImage } = useBackground()
   const configuredLanguage = settingData?.data?.config?.language
@@ -49,24 +48,17 @@ const MainApp: React.FC = () => {
   }, [forceTheme, setTheme])
 
   useEffect(() => {
-    if (configuredLanguage && !localStorage.getItem("language")) {
-      void i18n.changeLanguage(configuredLanguage)
-    }
-  }, [configuredLanguage, i18n])
+    if (!configuredLanguage || readStoredLanguage()) return
+    const lng = resolvePublicLanguage(configuredLanguage)
+    if (!lng) return
+    void changePublicLanguage(lng, { persist: false })
+  }, [configuredLanguage])
 
   if (error) {
     return <ErrorPage code={500} message={error.message} />
   }
 
-  if (!settingData) {
-    return (
-      <div className="flex min-h-96 items-center justify-center">
-        <Loader visible />
-      </div>
-    )
-  }
-
-  if (settingData.data.private_site) {
+  if (settingData?.data.private_site) {
     return <PrivateAccessGate siteName={settingData.data.config.site_name} siteDesc={settingData.data.config.site_desc} />
   }
 
@@ -94,17 +86,22 @@ const MainApp: React.FC = () => {
           "bg-background": !customBackgroundImage,
         })}
       >
-        <RefreshToast />
         <Header />
-        <main className="lite-page-shell z-20 pt-5 pb-[max(0.5rem,var(--safe-area-bottom))] md:pt-6 max-[620px]:pt-3">
-          <Routes>
-            <Route path="/" element={<Server />} />
-            <Route path="/server/:id" element={<ServerDetail />} />
-            <Route path="/instance/:id" element={<ServerDetail />} />
-            <Route path="/error" element={<ErrorPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Footer />
+        <main className="lite-page-shell z-20 flex flex-1 flex-col pt-5 pb-[max(0.5rem,var(--safe-area-bottom))] md:pt-6 max-[620px]:pt-3">
+          {!settingData ? (
+            <Loader visible />
+          ) : (
+            <>
+              <Routes>
+                <Route path="/" element={<Server />} />
+                <Route path="/server/:id" element={<ServerDetail />} />
+                <Route path="/instance/:id" element={<ServerDetail />} />
+                <Route path="/error" element={<ErrorPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Footer />
+            </>
+          )}
         </main>
       </div>
     </ErrorBoundary>
