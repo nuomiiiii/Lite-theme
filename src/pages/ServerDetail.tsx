@@ -44,7 +44,7 @@ export default function ServerDetail() {
           data-testid="server-network-panel"
           className={cn("w-full", currentTab === tabs[1] ? "relative" : "pointer-events-none invisible absolute inset-x-0 top-0 overflow-hidden")}
         >
-          <NetworkChart server_id={serverId} show={currentTab === tabs[1]} initialMonitorId={pingTaskId} />
+          <NetworkChart key={`${serverId}-${pingTaskId ?? "all"}`} server_id={serverId} show={currentTab === tabs[1]} initialMonitorId={pingTaskId} />
         </div>
       </div>
     </div>

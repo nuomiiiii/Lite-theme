@@ -41,7 +41,7 @@ test("keeps network header actions on the same row as titles on mobile", () => {
 })
 
 test("exits initial loading state and offers retry after a query failure", () => {
-  assert.match(chartSource, /const isLoading = isPending/)
+  assert.match(chartSource, /const isLoading = waitingForChart \|\| \(isPending && !hasTasks\)/)
   assert.match(chartSource, /const hasInitialError = isError && !monitorData/)
   assert.match(chartSource, /hasError=\{hasInitialError\}/)
   assert.match(chartSource, /onClick=\{onRetry\}/)

@@ -3,11 +3,15 @@ import ServerLatencySummary from "@/components/ServerLatencySummary"
 import TrafficBar from "@/components/TrafficBar"
 import { formatBytes, formatSpeed } from "@/lib/format"
 import type { HomeLatencyTaskSummary } from "@/lib/home-latency"
+import { saveHomeScroll } from "@/lib/home-scroll"
+import { prefetchServerMonitor } from "@/lib/prefetch-monitor"
 import { METER_TONE_COLOR, loadUsagePercent, resourceUsageTone } from "@/lib/meter-tone"
 import { GetOsName } from "@/lib/logo-class"
 import { readShowServerBandwidth, serverBandwidthLabel } from "@/lib/theme-config"
 import { calcTrafficUsed, cn, formatLiteInfo, parsePublicNote } from "@/lib/utils"
 import { LiteServer } from "@/types/lite-api"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
@@ -40,6 +44,11 @@ export default function ServerCard({
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const prefetchMonitor = useCallback(
+    (priority: boolean) => prefetchServerMonitor(queryClient, serverInfo.id, { priority }),
+    [queryClient, serverInfo.id],
+  )
   const info = formatLiteInfo(now, serverInfo)
   const parsedData = parsePublicNote(info.public_note)
   const systemName = info.platform.includes("Windows") ? "Windows" : GetOsName(info.platform)
@@ -53,6 +62,7 @@ export default function ServerCard({
   const showTags = Boolean(parsedData?.planDataMod || serverInfo.tags)
   const showFooter = Boolean(parsedData?.billingDataMod || showTags || showBandwidth)
   const openDetail = () => {
+    saveHomeScroll()
     navigate(`/server/${serverInfo.id}`)
   }
 
@@ -108,7 +118,10 @@ export default function ServerCard({
 
       <ServerLatencySummary
         summaries={latencySummaries}
+        onPrefetch={prefetchMonitor}
         onSelectTask={(taskId) => {
+          saveHomeScroll()
+          prefetchMonitor(true)
           navigate(`/server/${serverInfo.uuid || serverInfo.id}?view=network&ping_task=${encodeURIComponent(taskId)}`)
         }}
       />

@@ -34,6 +34,16 @@ export function emptyPingMonitor(task: AssignedPingTask, serverId: number, serve
   }
 }
 
+export function monitorsFromHomeLatency(
+  summaries: HomeLatencyTaskSummary[],
+  serverId: number,
+  serverName: string,
+): LiteMonitor[] {
+  return summaries.map((summary) =>
+    emptyPingMonitor({ id: summary.taskId, name: summary.taskName }, serverId, serverName),
+  )
+}
+
 export function mergeAssignedPingMonitors(
   monitors: LiteMonitor[],
   tasks: AssignedPingTask[],

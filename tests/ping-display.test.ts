@@ -22,7 +22,10 @@ test("wires public ping task assignment even when metric series are empty", () =
   assert.match(liteApi, /public:queryMetrics/)
   assert.match(liteApi, /public:getPingRecords/)
   assert.match(liteApi, /mergeAssignedPingMonitors/)
+  assert.match(pingDisplay, /monitorsFromHomeLatency/)
   assert.match(pingDisplay, /created_at: \[\]/)
+  assert.match(liteApi, /if \(!monitors\.some\(\(monitor\) => monitor\.created_at\.length > 0\)\)/)
+  assert.doesNotMatch(liteApi, /Promise\.all\(\[\s*fetchPingMetricSeries/)
 })
 
 test("matches assigned ping clients without requiring sample points", () => {
@@ -37,4 +40,9 @@ test("keeps backend ping task order after merging empty assigned monitors", () =
     [{ id: 1 }],
   )
   assert.equal(merged[0].monitor_name, "test")
+})
+
+test("turns homepage latency summaries into empty monitor shells", () => {
+  assert.match(pingDisplay, /export function monitorsFromHomeLatency/)
+  assert.match(pingDisplay, /emptyPingMonitor\(\{ id: summary.taskId, name: summary.taskName \}/)
 })

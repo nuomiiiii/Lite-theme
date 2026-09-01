@@ -3,6 +3,7 @@ import { ModeToggle } from "@/components/ThemeSwitcher"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSiteLogo } from "@/hooks/use-site-logo"
 import { fetchSetting } from "@/lib/lite-api"
+import { clearHomeScroll } from "@/lib/home-scroll"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@mui/material"
 import { useTranslation } from "react-i18next"
@@ -29,6 +30,7 @@ function Header() {
           type="button"
           onClick={() => {
             sessionStorage.removeItem("selectedGroup")
+            clearHomeScroll()
             navigate("/")
           }}
           className="flex min-w-0 flex-1 items-center gap-2.5 text-left"

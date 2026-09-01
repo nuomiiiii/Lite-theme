@@ -5,13 +5,17 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { fetchMonitor } from "@/lib/lite-api"
 import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
+import { readHomeLatencyCache } from "@/lib/home-latency"
 import { selectedTaskSampleCount } from "@/lib/probe-samples"
 import { pickBestProbeTask } from "@/lib/probe-route"
+import { monitorNameForId, nextActiveCharts } from "@/lib/probe-chart-selection"
+import { DEFAULT_MONITOR_HOURS, MONITOR_STALE_TIME_MS, monitorQueryKey } from "@/lib/prefetch-monitor"
+import { monitorsFromHomeLatency } from "@/lib/ping-display"
 import { cn, formatTime, parseLiteWebsocketMessage } from "@/lib/utils"
 import { formatCompactTime } from "@/lib/format"
 import { PROBE_COLORS } from "@/lib/theme-tokens"
 import { LiteMonitor, ServerMonitorChart } from "@/types/lite-api"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Button, MenuItem, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
 import { Activity, Route, ShieldCheck, Waypoints } from "lucide-react"
 import * as React from "react"
@@ -138,35 +142,45 @@ function formatPercentage(value: number | null, digits = 1): string {
 export function NetworkChart({ server_id, show, initialMonitorId }: { server_id: number; show: boolean; initialMonitorId?: number }) {
   const { t } = useTranslation()
   const { lastMessage } = useWebSocketContext()
-  const [hours, setHours] = React.useState(1)
+  const [hours, setHours] = React.useState(DEFAULT_MONITOR_HOURS)
+
+  const fallbackServer = useMemo(() => {
+    if (!lastMessage) return undefined
+    return parseLiteWebsocketMessage(lastMessage.data)?.servers.find((server) => server.id === server_id)
+  }, [lastMessage, server_id])
+  const fallbackServerName = fallbackServer?.name || ""
+  const homePlaceholder = useMemo(() => {
+    const uuid = fallbackServer?.uuid
+    if (!uuid) return undefined
+    const cached = readHomeLatencyCache(window.sessionStorage, [uuid])
+    const summaries = cached?.[uuid]
+    if (!summaries?.length) return undefined
+    return { success: true, data: monitorsFromHomeLatency(summaries, server_id, fallbackServerName) }
+  }, [fallbackServer, fallbackServerName, server_id])
 
   const {
     data: monitorData,
     isPending,
+    isFetching,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["monitor", server_id, hours],
+    queryKey: monitorQueryKey(server_id, hours),
     queryFn: () => fetchMonitor(server_id, hours),
-    placeholderData: keepPreviousData,
+    placeholderData: (previous) => previous ?? homePlaceholder,
     enabled: true,
     refetchOnWindowFocus: false,
     refetchInterval: show ? historyRefetchMs(hours) : false,
-    staleTime: 20000,
+    staleTime: MONITOR_STALE_TIME_MS,
   })
 
-  const fallbackServerName = useMemo(() => {
-    if (!lastMessage) return ""
-    const websocketData = parseLiteWebsocketMessage(lastMessage.data)
-    return websocketData?.servers.find((server) => server.id === server_id)?.name || ""
-  }, [lastMessage, server_id])
-
   const monitorRecords = monitorData?.data || []
-  const isLoading = isPending
-  const hasInitialError = isError && !monitorData
   const hasTasks = monitorRecords.length > 0
   const hasSamples = monitorRecords.some((monitor) => monitor.created_at.length > 0)
+  const waitingForChart = isFetching && !hasSamples
+  const isLoading = waitingForChart || (isPending && !hasTasks)
+  const hasInitialError = isError && !monitorData
   const isEmpty = !isLoading && !hasInitialError && !!monitorData?.success && !hasTasks
 
   React.useEffect(() => {
@@ -175,7 +189,7 @@ export function NetworkChart({ server_id, show, initialMonitorId }: { server_id:
   const transformedData = monitorRecords.length > 0 ? transformData(monitorRecords) : {}
 
   const formattedData = hasSamples ? formatData(monitorRecords) : []
-  const initialChart = monitorRecords.find((monitor) => monitor.monitor_id === initialMonitorId)?.monitor_name
+  const initialChart = monitorNameForId(monitorRecords, initialMonitorId)
 
   const chartDataKey = Object.keys(transformedData).length > 0
     ? Object.keys(transformedData)
@@ -247,23 +261,25 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 
   const forcePeakCutEnabled = (window.ForcePeakCutEnabled as boolean) ?? false
 
-  const [activeCharts, setActiveCharts] = React.useState<string[]>([])
+  const [activeCharts, setActiveCharts] = React.useState<string[]>(() => (initialChart ? [initialChart] : []))
   const initializedChartKeys = React.useRef("")
+  const appliedInitialChart = React.useRef<string | undefined>(undefined)
+  const activeChartsRef = React.useRef<string[]>([])
+  activeChartsRef.current = activeCharts
   const isPeakEnabled = forcePeakCutEnabled
 
   React.useEffect(() => {
-    const signature = chartDataKey.join("\u0000")
-    if (!signature || initializedChartKeys.current === signature) return
-    setActiveCharts((previous) => {
-      if (!initializedChartKeys.current) {
-        if (initialChart && chartDataKey.includes(initialChart)) return [initialChart]
-        return [...chartDataKey]
-      }
-      const retained = previous.filter((chart) => chartDataKey.includes(chart))
-      const additions = chartDataKey.filter((chart) => !previous.includes(chart))
-      return retained.length > 0 ? [...retained, ...additions] : [...chartDataKey]
+    const next = nextActiveCharts({
+      chartDataKey,
+      initialChart,
+      initializedSignature: initializedChartKeys.current,
+      appliedInitial: appliedInitialChart.current,
+      previous: activeChartsRef.current,
     })
-    initializedChartKeys.current = signature
+    if (next.skip) return
+    initializedChartKeys.current = next.signature
+    appliedInitialChart.current = next.appliedInitial
+    setActiveCharts(next.charts)
   }, [chartDataKey, initialChart])
 
   const toggleChart = useCallback((name: string) => {

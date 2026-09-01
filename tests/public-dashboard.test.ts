@@ -110,6 +110,18 @@ test("header and page body share the same content shell", () => {
   assert.doesNotMatch(header, /max-w-\[1420px\]/)
 })
 
+test("restores homepage scroll after leaving a server detail page", () => {
+  const header = readFileSync(new URL("../src/components/Header.tsx", import.meta.url), "utf8")
+  const overview = readFileSync(new URL("../src/components/ServerDetailOverview.tsx", import.meta.url), "utf8")
+  const serverCard = readFileSync(new URL("../src/components/ServerCard.tsx", import.meta.url), "utf8")
+  assert.match(serverPage, /restoreHomeScroll\(\)/)
+  assert.match(serverPage, /saveHomeScroll\(\)/)
+  assert.match(serverPage, /addEventListener\("scroll"/)
+  assert.match(serverCard, /saveHomeScroll\(\)/)
+  assert.match(header, /clearHomeScroll\(\)/)
+  assert.match(overview, /navigate\("\/"\)/)
+})
+
 test("public PWA uses cover viewport and root safe-area insets", () => {
   const index = readFileSync(new URL("../index.html", import.meta.url), "utf8")
   const header = readFileSync(new URL("../src/components/Header.tsx", import.meta.url), "utf8")
@@ -189,6 +201,25 @@ test("keeps assigned ping tasks on the public monitor even without metric points
   assert.match(liteApi, /mergeAssignedPingMonitors/)
   assert.match(liteApi, /unionPingTasksForClient/)
   assert.match(liteApi, /seedAssignedHomeLatency/)
+})
+
+test("prefetches probe charts from homepage hover, press and visibility", () => {
+  const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
+  const card = readFileSync(new URL("../src/components/ServerCard.tsx", import.meta.url), "utf8")
+  const chart = readFileSync(new URL("../src/components/NetworkChart.tsx", import.meta.url), "utf8")
+  const prefetch = readFileSync(new URL("../src/lib/prefetch-monitor.ts", import.meta.url), "utf8")
+  assert.match(prefetch, /prefetchQuery/)
+  assert.match(prefetch, /priority/)
+  assert.match(prefetch, /MAX_IDLE_PREFETCH = 1/)
+  assert.match(latency, /IntersectionObserver/)
+  assert.match(latency, /onPointerEnter/)
+  assert.match(latency, /onPointerDown/)
+  assert.match(latency, /prefetchRef\.current\?\.\(false\)/)
+  assert.match(card, /prefetchServerMonitor/)
+  assert.match(card, /prefetchMonitor\(true\)/)
+  assert.match(chart, /monitorQueryKey/)
+  assert.match(chart, /readHomeLatencyCache/)
+  assert.match(chart, /waitingForChart/)
 })
 
 test("public locales share the visitor-facing copy keys", () => {

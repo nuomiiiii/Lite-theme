@@ -1,14 +1,17 @@
 import { HOME_LATENCY_CARD_LIMIT, homeLatencyGridTemplate, hourPacketFillPercent, latencyBarTone, type HomeLatencyTaskSummary } from "@/lib/home-latency"
 import { METER_TONE_COLOR, packetFillTone } from "@/lib/meter-tone"
 import { THEME } from "@/lib/theme-tokens"
+import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
 function TaskProbe({
   summary,
   onSelect,
+  onPress,
 }: {
   summary: HomeLatencyTaskSummary
   onSelect?: (taskId: string) => void
+  onPress?: () => void
 }) {
   const latencyTone = latencyBarTone(summary.latency)
   const latency = summary.latency === null ? "--" : `${Math.round(summary.latency)} ms`
@@ -20,6 +23,7 @@ function TaskProbe({
     <button
       type="button"
       title={title}
+      onPointerDown={() => onPress?.()}
       onClick={(event) => {
         if (!onSelect) return
         event.stopPropagation()
@@ -44,15 +48,50 @@ function TaskProbe({
 export default function ServerLatencySummary({
   summaries,
   onSelectTask,
+  onPrefetch,
 }: {
   summaries?: HomeLatencyTaskSummary[]
   onSelectTask?: (taskId: string) => void
+  onPrefetch?: (priority: boolean) => void
 }) {
   const { t } = useTranslation()
   const displayed = (summaries || []).slice(0, HOME_LATENCY_CARD_LIMIT)
+  const sectionRef = useRef<HTMLElement>(null)
+  const prefetchRef = useRef(onPrefetch)
+  prefetchRef.current = onPrefetch
+
+  useEffect(() => {
+    const node = sectionRef.current
+    if (!node) return
+
+    let dwell: number | undefined
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && entry.intersectionRatio >= 0.5) {
+          dwell = window.setTimeout(() => prefetchRef.current?.(false), 300)
+          return
+        }
+        if (dwell !== undefined) {
+          window.clearTimeout(dwell)
+          dwell = undefined
+        }
+      },
+      { threshold: [0.5] },
+    )
+    observer.observe(node)
+    return () => {
+      observer.disconnect()
+      if (dwell !== undefined) window.clearTimeout(dwell)
+    }
+  }, [])
 
   return (
-    <section className="mx-[22px] border-t border-[#E9EEF1] py-2.5 dark:border-[#26313A] max-[620px]:mx-4" data-testid="server-latency-summary">
+    <section
+      ref={sectionRef}
+      onPointerEnter={() => onPrefetch?.(true)}
+      className="mx-[22px] border-t border-[#E9EEF1] py-2.5 dark:border-[#26313A] max-[620px]:mx-4"
+      data-testid="server-latency-summary"
+    >
       <div className="flex items-center justify-between gap-4">
         <span className="flex items-center gap-[9px] text-xs font-semibold text-[#566571] dark:text-[#B2C0C9]">
           <svg className="h-2.5 w-[18px]" viewBox="0 0 20 10" aria-hidden="true" fill="none" stroke={THEME.green} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -65,7 +104,7 @@ export default function ServerLatencySummary({
       {displayed.length > 0 ? (
         <div className="mt-2 grid gap-x-5 gap-y-3 max-[620px]:gap-x-3" style={{ gridTemplateColumns: homeLatencyGridTemplate(displayed.length) }}>
           {displayed.map((item) => (
-            <TaskProbe key={item.taskId} summary={item} onSelect={onSelectTask} />
+            <TaskProbe key={item.taskId} summary={item} onSelect={onSelectTask} onPress={() => onPrefetch?.(true)} />
           ))}
         </div>
       ) : (

@@ -269,14 +269,15 @@ export async function fetchMonitor(serverId: number, hours = 24): Promise<Monito
 
   const serverName = nodes[uuid]?.name || String(serverId)
   const maxPoints = probeHistoryMaxPoints(hours)
-  const [metricData, recordData] = await Promise.all([
-    fetchPingMetricSeries({ entity_id: uuid, hours }, maxPoints),
-    fetchPingRecords(uuid, hours),
-  ])
-  const tasks = unionPingTasksForClient(metricData.tasks, recordData.tasks, uuid)
+  const metricData = await fetchPingMetricSeries({ entity_id: uuid, hours }, maxPoints)
+  let tasks = unionPingTasksForClient(metricData.tasks, [], uuid)
   let monitors = monitorDataFromMetricSeries(metricData.series, tasks, serverId, serverName)
-  if (!monitors.some((monitor) => monitor.created_at.length > 0) && recordData.records.length > 0) {
-    monitors = monitorsFromPingRecords(recordData.records, tasks, serverId, serverName)
+  if (!monitors.some((monitor) => monitor.created_at.length > 0)) {
+    const recordData = await fetchPingRecords(uuid, hours)
+    tasks = unionPingTasksForClient(metricData.tasks, recordData.tasks, uuid)
+    if (recordData.records.length > 0) {
+      monitors = monitorsFromPingRecords(recordData.records, tasks, serverId, serverName)
+    }
   }
 
   return {

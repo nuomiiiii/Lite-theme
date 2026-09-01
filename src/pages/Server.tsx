@@ -6,12 +6,13 @@ import type { SortType } from "@/context/sort-context"
 import { useStatus } from "@/hooks/use-status"
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { readHomeLatencyCache, writeHomeLatencyCache } from "@/lib/home-latency"
+import { restoreHomeScroll, saveHomeScroll } from "@/lib/home-scroll"
 import { fetchHomeLatency, fetchServerGroup } from "@/lib/lite-api"
 import { readThemeHomeSort } from "@/lib/theme-home-sort"
 import { formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
 import { ServerGroup } from "@/types/lite-api"
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 function homeLatencyStorage(): Storage | null {
@@ -69,8 +70,38 @@ export default function Servers() {
     refetchOnWindowFocus: false,
   })
 
+  useLayoutEffect(() => {
+    restoreHomeScroll()
+    const timers = [50, 120, 250].map((ms) => window.setTimeout(() => restoreHomeScroll(), ms))
+    return () => timers.forEach((id) => window.clearTimeout(id))
+  }, [])
+
   useEffect(() => {
     setCurrentGroup(sessionStorage.getItem("selectedGroup") || "All")
+  }, [])
+
+  useEffect(() => {
+    let ticking = false
+    let armed = false
+    const armTimer = window.setTimeout(() => {
+      armed = true
+    }, 300)
+    const persist = () => {
+      ticking = false
+      if (!armed) return
+      saveHomeScroll()
+    }
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(persist)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      armed = false
+      window.clearTimeout(armTimer)
+      window.removeEventListener("scroll", onScroll)
+    }
   }, [])
 
   const handleGroupChange = (group: string) => {
