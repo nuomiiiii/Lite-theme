@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
 import test from "node:test"
 
 import { HOME_LATENCY_CARD_LIMIT, homeLatencyGridTemplate, hourPacketFillPercent, latencyBarTone, mapPingStatsToHomeLatency, readHomeLatencyCache, summarizeHomeLatencySamples, writeHomeLatencyCache } from "../src/lib/home-latency.ts"
@@ -158,4 +159,11 @@ test("homepage cards keep at most four probe tasks and fill one PC row", () => {
   assert.equal(homeLatencyGridTemplate(3), "repeat(3, minmax(0, 1fr))")
   assert.equal(homeLatencyGridTemplate(4), "repeat(4, minmax(0, 1fr))")
   assert.equal(homeLatencyGridTemplate(8), "repeat(4, minmax(0, 1fr))")
+})
+
+test("mobile homepage probes wrap at two per row and stretch a leftover third", () => {
+  const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
+  assert.match(latency, /grid-cols-2/)
+  assert.match(latency, /max-\[620px\]:\[&>\.probe:nth-child\(odd\):last-child\]:col-span-2/)
+  assert.match(latency, /min-\[621px\]:\[grid-template-columns:var\(--home-latency-cols\)\]/)
 })

@@ -102,7 +102,10 @@ export default function ServerLatencySummary({
         <span className="text-[10px] text-[#7A8792]">{t("serverCard.recentHour")}</span>
       </div>
       {displayed.length > 0 ? (
-        <div className="mt-2 grid gap-x-5 gap-y-3 max-[620px]:gap-x-3" style={{ gridTemplateColumns: homeLatencyGridTemplate(displayed.length) }}>
+        <div
+          className="mt-2 grid grid-cols-2 gap-x-5 gap-y-3 max-[620px]:gap-x-3 max-[620px]:[&>.probe:nth-child(odd):last-child]:col-span-2 min-[621px]:[grid-template-columns:var(--home-latency-cols)]"
+          style={{ ["--home-latency-cols" as string]: homeLatencyGridTemplate(displayed.length) }}
+        >
           {displayed.map((item) => (
             <TaskProbe key={item.taskId} summary={item} onSelect={onSelectTask} onPress={() => onPrefetch?.(true)} />
           ))}

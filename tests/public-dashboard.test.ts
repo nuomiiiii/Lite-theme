@@ -85,6 +85,8 @@ test("homepage latency probes omit the packet-loss status row", () => {
   assert.match(latency, /homeLatencyGridTemplate/)
   assert.match(latency, /HOME_LATENCY_CARD_LIMIT/)
   assert.match(latency, /slice\(0, HOME_LATENCY_CARD_LIMIT\)/)
+  assert.match(latency, /grid-cols-2/)
+  assert.match(latency, /col-span-2/)
   assert.match(latency, /latencyBarTone/)
   assert.match(latency, /packetFillTone/)
   assert.match(card, /resourceUsageTone/)
