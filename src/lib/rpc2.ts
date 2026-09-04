@@ -1,3 +1,5 @@
+import { notifyRpcAuthLoss, RpcAuthLossError, rpcErrorLooksLikeAuthLoss } from "./rpc-auth"
+
 /**
  * RPC2 客户端类
  * 支持通过 WebSocket 和 HTTP POST 调用 JSON-RPC 2.0 接口
@@ -46,6 +48,14 @@ export class RPC2Client {
   }
 
   /**
+   * 登录后打开套接字时恢复自动连接/重连。
+   */
+  private enableSessionReconnect(): void {
+    this.options.autoConnect = true;
+    this.options.autoReconnect = true;
+  }
+
+  /**
    * 获取当前连接状态
    */
   get state(): RPC2ConnectionStateType {
@@ -63,6 +73,7 @@ export class RPC2Client {
    * 建立 WebSocket 连接
    */
   async connect(): Promise<void> {
+    this.enableSessionReconnect();
     if (this.connectionState === RPC2ConnectionState.CONNECTED || 
         this.connectionState === RPC2ConnectionState.CONNECTING) {
       return;
@@ -123,10 +134,22 @@ export class RPC2Client {
   }
 
   /**
+   * 暂停套接字：关掉连接，且不要立刻重连。
+   */
+  pause(): void {
+    this.options.autoConnect = false;
+    this.options.autoReconnect = false;
+    this.closeSocket();
+  }
+
+  /**
    * 断开 WebSocket 连接
    */
   disconnect(): void {
-    this.options.autoReconnect = false;
+    this.pause();
+  }
+
+  private closeSocket(): void {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = undefined;
@@ -145,6 +168,15 @@ export class RPC2Client {
 
     this.setConnectionState(RPC2ConnectionState.DISCONNECTED);
     this.clearPendingRequests(new Error("连接已断开"));
+  }
+
+  private rejectIfAuthLoss(code?: number, message?: string): Error | null {
+    if (!rpcErrorLooksLikeAuthLoss(code, message)) {
+      return null;
+    }
+    this.pause();
+    notifyRpcAuthLoss();
+    return new RpcAuthLossError(`RPC Error ${code}: ${message || ""}`.trim(), 401);
   }
 
   /**
@@ -208,8 +240,16 @@ export class RPC2Client {
         method: "POST",
         headers: this.options.headers,
         body: JSON.stringify(request),
+        credentials: "include",
+        cache: "no-store",
         signal: options.timeout ? AbortSignal.timeout(options.timeout) : undefined,
       });
+
+      if (response.status === 401) {
+        this.pause();
+        notifyRpcAuthLoss();
+        throw new RpcAuthLossError(`HTTP ${response.status}`, 401);
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -222,6 +262,8 @@ export class RPC2Client {
       const jsonResponse: JSONRPC2Response<TResult> = await response.json();
       
       if ("error" in jsonResponse) {
+        const authError = this.rejectIfAuthLoss(jsonResponse.error.code, jsonResponse.error.message);
+        if (authError) throw authError;
         throw new Error(`RPC Error ${jsonResponse.error.code}: ${jsonResponse.error.message}`);
       }
 
@@ -254,7 +296,15 @@ export class RPC2Client {
         method: "POST",
         headers: this.options.headers,
         body: JSON.stringify(batchRequest),
+        credentials: "include",
+        cache: "no-store",
       });
+
+      if (response.status === 401) {
+        this.pause();
+        notifyRpcAuthLoss();
+        throw new RpcAuthLossError(`HTTP ${response.status}`, 401);
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -264,6 +314,8 @@ export class RPC2Client {
       
       return jsonResponse.map(res => {
         if ("error" in res) {
+          const authError = this.rejectIfAuthLoss(res.error.code, res.error.message);
+          if (authError) throw authError;
           throw new Error(`RPC Error ${res.error.code}: ${res.error.message}`);
         }
         return res.result;
@@ -362,7 +414,8 @@ export class RPC2Client {
     }
 
     if ("error" in data) {
-      pending.reject(new Error(`RPC Error ${data.error.code}: ${data.error.message}`));
+      const authError = this.rejectIfAuthLoss(data.error.code, data.error.message);
+      pending.reject(authError || new Error(`RPC Error ${data.error.code}: ${data.error.message}`));
     } else {
       pending.resolve(data.result);
     }

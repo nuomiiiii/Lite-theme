@@ -3,6 +3,7 @@ import { detectCanadianDollarCurrency, getStaticCurrencyLabel } from "@/lib/curr
 import { formatBytes } from "@/lib/format"
 import { leftoverStatusUuids, listLiteNodes, resolveLiteServerEntries } from "@/lib/lite-node-list"
 import { uuidToNumber } from "@/lib/server-route"
+import { resolveThemeBillingStartDate } from "@/lib/theme-billing"
 import { LiteServer, LiteWebsocketResponse } from "@/types/lite-api"
 import { type ClassValue, clsx } from "clsx"
 import dayjs from "dayjs"
@@ -572,15 +573,14 @@ function buildPublicNoteFromNode(server: any, existingPublicNote?: string): stri
           : String(server.price)
         : ""
 
-    // 起止时间：优先使用 created_at/expired_at；若缺失 startDate 且存在 bc+expired_at，则回推
+    // 起止时间：优先公开备注里的 billingDataMod.startDate，否则用 expired_at - billing_cycle 回推。
+    // 不再把节点数据库创建时间当作计费周期开始。
     const expiredRaw: string = server?.expired_at || ""
     const endDate: string =
       expiredRaw && dayjs(expiredRaw).isValid() && dayjs(expiredRaw).diff(dayjs(), "year", true) > 100
         ? "0000-00-00T23:59:59+08:00"
         : expiredRaw
-    // 生成 startDate；若其年份小于 0002 年，则视为未填写（置为空）
-    const startDateCandidate =
-      server?.created_at || (expiredRaw && bc ? dayjs(expiredRaw).subtract(bc, "day").toISOString() : null)
+    const startDateCandidate = resolveThemeBillingStartDate(server, existing?.billingDataMod?.startDate)
     const startDate =
       startDateCandidate && dayjs(startDateCandidate).isValid() && dayjs(startDateCandidate).year() < 2 ? null : startDateCandidate
 

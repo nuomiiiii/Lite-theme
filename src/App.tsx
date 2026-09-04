@@ -5,7 +5,6 @@ import { Route, BrowserRouter as Router, Routes } from "react-router-dom"
 import ErrorBoundary from "./components/ErrorBoundary"
 import Footer from "./components/Footer"
 import Header from "./components/Header"
-import PrivateAccessGate from "./components/PrivateAccessGate"
 import { Loader } from "./components/loading/Loader"
 import { useBackground } from "./hooks/use-background"
 import { useTheme } from "./hooks/use-theme"
@@ -56,10 +55,6 @@ const MainApp: React.FC = () => {
 
   if (error) {
     return <ErrorPage code={500} message={error.message} />
-  }
-
-  if (settingData?.data.private_site) {
-    return <PrivateAccessGate siteName={settingData.data.config.site_name} siteDesc={settingData.data.config.site_desc} />
   }
 
   const customMobileBackgroundImage = window.CustomMobileBackgroundImage !== "" ? window.CustomMobileBackgroundImage : undefined

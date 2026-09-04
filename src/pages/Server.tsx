@@ -133,8 +133,8 @@ export default function Servers() {
   const onlineOnly = groupedServers.filter((server) => formatLiteInfo(websocketData.now, server).online)
   const up = onlineOnly.reduce((total, server) => total + (server.state?.net_out_transfer || 0), 0)
   const down = onlineOnly.reduce((total, server) => total + (server.state?.net_in_transfer || 0), 0)
-  const upSpeed = onlineOnly.reduce((total, server) => total + ((server.state?.net_out_speed || 0) / 1024 / 1024), 0)
-  const downSpeed = onlineOnly.reduce((total, server) => total + ((server.state?.net_in_speed || 0) / 1024 / 1024), 0)
+  const upSpeed = onlineOnly.reduce((total, server) => total + ((server.state?.net_out_speed || 0) / 1000 / 1000), 0)
+  const downSpeed = onlineOnly.reduce((total, server) => total + ((server.state?.net_in_speed || 0) / 1000 / 1000), 0)
   const regionServers = groupedServers.map((server) => {
     const info = formatLiteInfo(websocketData.now, server)
     return { country_code: info.country_code, online: info.online }

@@ -1,4 +1,5 @@
 import { SharedClient } from "@/hooks/use-rpc2"
+import { isRpcAuthLossError } from "@/lib/rpc-auth"
 import { readLiveStatusCache, writeLiveStatusCache } from "@/lib/live-status-cache"
 import { getLiteNodes, normalizeLiteServerStatus } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
@@ -20,9 +21,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [connected, setConnected] = useState(false)
   const activeRef = useRef(false)
   const requestRunningRef = useRef(false)
+  const intervalIdRef = useRef<number | null>(null)
+
+  const stopPolling = useCallback(() => {
+    activeRef.current = false
+    if (intervalIdRef.current != null) {
+      window.clearInterval(intervalIdRef.current)
+      intervalIdRef.current = null
+    }
+  }, [])
 
   const updateData = useCallback(async () => {
-    if (requestRunningRef.current) return
+    if (!activeRef.current || requestRunningRef.current) return
     requestRunningRef.current = true
 
     try {
@@ -35,25 +45,33 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setLastMessage(message)
       setConnected(true)
     } catch (error) {
+      if (isRpcAuthLossError(error)) {
+        stopPolling()
+        try {
+          SharedClient().pause()
+        } catch {
+          // Provider already tore down the client.
+        }
+        return
+      }
       console.warn("加载服务器状态失败，等待下一轮：", error instanceof Error ? error.message : error)
     } finally {
       requestRunningRef.current = false
     }
-  }, [])
+  }, [stopPolling])
 
   useEffect(() => {
     activeRef.current = true
     void updateData()
 
-    const intervalId = window.setInterval(() => {
+    intervalIdRef.current = window.setInterval(() => {
       void updateData()
     }, STATUS_POLL_MS)
 
     return () => {
-      activeRef.current = false
-      window.clearInterval(intervalId)
+      stopPolling()
     }
-  }, [updateData])
+  }, [stopPolling, updateData])
 
   const contextValue: WebSocketContextType = {
     lastMessage,
