@@ -68,6 +68,8 @@ test("uses one resolved server ID for overview, realtime charts and ping charts"
   assert.doesNotMatch(tabSwitch, /px-4 text-sm/)
   assert.doesNotMatch(realtime, /Number\(server_id\)/)
   assert.match(realtime, /data-testid={`resource-realtime-\$\{dataKey\}`}/)
+  assert.match(realtime, /serverDetail.usageStatistics/)
+  assert.doesNotMatch(realtime, /size-\[7px\] rounded-full bg-\[#22B573\]/)
   assert.match(realtime, /flex min-w-0 items-center gap-3.5/)
   assert.match(realtime, /ml-auto min-w-0 max-w-\[58%\] truncate text-right/)
   assert.doesNotMatch(realtime, /grid-cols-\[42px_minmax\(0,1fr\)\]/)

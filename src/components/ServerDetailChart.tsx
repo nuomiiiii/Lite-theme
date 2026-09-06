@@ -216,8 +216,7 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
     <div className="space-y-4">
       <section aria-labelledby="resource-usage-title">
         <div className="mb-3 mt-1">
-          <h2 id="resource-usage-title" className="m-0 flex items-center gap-[9px] text-[17px] font-semibold text-[#202A33] dark:text-[#EDF3F6]">
-            <span className="size-[7px] rounded-full bg-[#22B573]" style={{ boxShadow: "0 0 0 3px #DDF7E8" }} />
+          <h2 id="resource-usage-title" className="m-0 text-[17px] font-semibold text-[#202A33] dark:text-[#EDF3F6]">
             {t("serverDetail.usageStatistics", { defaultValue: "用量统计" })}
           </h2>
         </div>
