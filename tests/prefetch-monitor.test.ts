@@ -8,6 +8,8 @@ const chart = readFileSync(new URL("../src/components/NetworkChart.tsx", import.
 test("uses a shared monitor query key for homepage prefetch and the network page", () => {
   assert.match(prefetch, /export function monitorQueryKey\(serverId: number, hours = DEFAULT_MONITOR_HOURS\)/)
   assert.match(prefetch, /return \["monitor", serverId, hours\] as const/)
+  assert.match(prefetch, /readDefaultProbeChartHours/)
   assert.match(chart, /monitorQueryKey\(server_id, hours\)/)
   assert.match(chart, /queryFn: \(\) => fetchMonitor\(server_id, hours\)/)
+  assert.match(chart, /readDefaultProbeChartHours/)
 })

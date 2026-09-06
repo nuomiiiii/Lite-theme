@@ -51,11 +51,6 @@ export const HOME_LATENCY_AMBER_MAX_MS = 180
 
 export type LatencyBarTone = "green" | "amber" | "coral" | "empty"
 
-export function homeLatencyGridTemplate(count: number): string {
-  const columns = Math.min(HOME_LATENCY_CARD_LIMIT, Math.max(1, Math.floor(count)))
-  return `repeat(${columns}, minmax(0, 1fr))`
-}
-
 export function latencyBarTone(latency: number | null): LatencyBarTone {
   if (latency === null || !Number.isFinite(latency) || latency < 0) return "empty"
   if (latency >= HOME_LATENCY_AMBER_MAX_MS) return "coral"
@@ -63,11 +58,12 @@ export function latencyBarTone(latency: number | null): LatencyBarTone {
   return "green"
 }
 
-export function hourPacketFillPercent(input: {
-  total?: number | null
-  valid?: number | null
-  packetLoss?: number | null
-}): number {
+export function formatProbePacketLoss(packetLoss: number | null): string {
+  if (packetLoss === null || !Number.isFinite(packetLoss) || packetLoss < 0) return "--"
+  return `${packetLoss.toFixed(1)}%`
+}
+
+export function hourPacketFillPercent(input: { total?: number | null; valid?: number | null; packetLoss?: number | null }): number {
   const total = finiteOrNull(input.total)
   const valid = finiteOrNull(input.valid)
   if (total !== null) {
@@ -169,10 +165,7 @@ export interface PingStatForHome {
   interval?: number | null
 }
 
-export function mapPingStatsToHomeLatency(
-  stats: PingStatForHome[],
-  tasks: Array<{ id?: number | string; name?: string }> = [],
-): HomeLatencyByServer {
+export function mapPingStatsToHomeLatency(stats: PingStatForHome[], tasks: Array<{ id?: number | string; name?: string }> = []): HomeLatencyByServer {
   const taskNames = new Map(tasks.map((task) => [String(task.id), task.name || `Task ${task.id}`]))
   const taskOrder = new Map(tasks.map((task, index) => [String(task.id), index]))
   const result: HomeLatencyByServer = {}
@@ -244,11 +237,7 @@ function isTaskSummary(value: unknown): value is HomeLatencyTaskSummary {
   )
 }
 
-export function readHomeLatencyCache(
-  storage: ReadableStorage | null,
-  entityIds: string[],
-  now = Date.now(),
-): HomeLatencyByServer | undefined {
+export function readHomeLatencyCache(storage: ReadableStorage | null, entityIds: string[], now = Date.now()): HomeLatencyByServer | undefined {
   if (!storage || entityIds.length === 0) return undefined
 
   try {

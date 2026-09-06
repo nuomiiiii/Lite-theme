@@ -1,23 +1,35 @@
-import { HOME_LATENCY_CARD_LIMIT, homeLatencyGridTemplate, hourPacketFillPercent, latencyBarTone, type HomeLatencyTaskSummary } from "@/lib/home-latency"
+import {
+  HOME_LATENCY_CARD_LIMIT,
+  type HomeLatencyTaskSummary,
+  formatProbePacketLoss,
+  hourPacketFillPercent,
+  latencyBarTone,
+} from "@/lib/home-latency"
 import { METER_TONE_COLOR, packetFillTone } from "@/lib/meter-tone"
+import { readShowHomePacketLoss } from "@/lib/theme-config"
 import { THEME } from "@/lib/theme-tokens"
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
 function TaskProbe({
   summary,
+  showPacketLoss,
   onSelect,
   onPress,
 }: {
   summary: HomeLatencyTaskSummary
+  showPacketLoss: boolean
   onSelect?: (taskId: string) => void
   onPress?: () => void
 }) {
+  const { t } = useTranslation()
   const latencyTone = latencyBarTone(summary.latency)
   const latency = summary.latency === null ? "--" : `${Math.round(summary.latency)} ms`
+  const packetLoss = formatProbePacketLoss(summary.packetLoss)
   const percent = hourPacketFillPercent(summary)
   const fillTone = packetFillTone(percent)
-  const title = `${summary.taskName} · 近1小时成功率 ${percent.toFixed(0)}%`
+  const lossLabel = t("serverCard.packetLoss", { defaultValue: "丢包率" })
+  const title = showPacketLoss ? `${summary.taskName} · ${latency} · ${lossLabel} ${packetLoss}` : `${summary.taskName} · ${latency}`
 
   return (
     <button
@@ -33,7 +45,20 @@ function TaskProbe({
     >
       <div className="flex min-w-0 items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-xs text-[#566571] dark:text-[#B2C0C9]">{summary.taskName}</span>
-        <strong className="shrink-0 text-[18px] font-semibold tabular-nums" style={{ color: METER_TONE_COLOR[latencyTone] }}>{latency}</strong>
+        <span className="flex shrink-0 items-center gap-2 max-[620px]:gap-1.5">
+          <strong className="text-[18px] font-semibold leading-none tabular-nums max-[620px]:text-[15px]" style={{ color: METER_TONE_COLOR[latencyTone] }}>
+            {latency}
+          </strong>
+          {showPacketLoss ? (
+            <>
+              <span aria-hidden="true" className="h-2.5 w-px bg-[#DCE3E7] dark:bg-[#35434D]" />
+              <span className="whitespace-nowrap text-[10px] leading-none tabular-nums text-[#7A8792]">
+                <span className="max-[620px]:hidden">{lossLabel} </span>
+                {packetLoss}
+              </span>
+            </>
+          ) : null}
+        </span>
       </div>
       <div className="mt-1.5 h-[5px] overflow-hidden rounded-[3px] bg-[#E9EEF1] dark:bg-[#2B3740]">
         <span
@@ -55,6 +80,7 @@ export default function ServerLatencySummary({
   onPrefetch?: (priority: boolean) => void
 }) {
   const { t } = useTranslation()
+  const showPacketLoss = readShowHomePacketLoss()
   const displayed = (summaries || []).slice(0, HOME_LATENCY_CARD_LIMIT)
   const sectionRef = useRef<HTMLElement>(null)
   const prefetchRef = useRef(onPrefetch)
@@ -94,7 +120,16 @@ export default function ServerLatencySummary({
     >
       <div className="flex items-center justify-between gap-4">
         <span className="flex items-center gap-[9px] text-xs font-semibold text-[#566571] dark:text-[#B2C0C9]">
-          <svg className="h-2.5 w-[18px]" viewBox="0 0 20 10" aria-hidden="true" fill="none" stroke={THEME.green} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="h-2.5 w-[18px]"
+            viewBox="0 0 20 10"
+            aria-hidden="true"
+            fill="none"
+            stroke={THEME.green}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M1 6h3l2-4 3 7 3-6 2 3h5" />
           </svg>
           {t("serverCard.networkQuality", { defaultValue: "延迟监测" })}
@@ -102,12 +137,9 @@ export default function ServerLatencySummary({
         <span className="text-[10px] text-[#7A8792]">{t("serverCard.recentHour")}</span>
       </div>
       {displayed.length > 0 ? (
-        <div
-          className="mt-2 grid grid-cols-2 gap-x-5 gap-y-3 max-[620px]:gap-x-3 max-[620px]:[&>.probe:nth-child(odd):last-child]:col-span-2 min-[621px]:[grid-template-columns:var(--home-latency-cols)]"
-          style={{ ["--home-latency-cols" as string]: homeLatencyGridTemplate(displayed.length) }}
-        >
+        <div className="mt-2 grid grid-cols-2 gap-x-5 gap-y-3 [&>.probe:nth-child(odd):last-child]:col-span-2 max-[620px]:gap-x-3">
           {displayed.map((item) => (
-            <TaskProbe key={item.taskId} summary={item} onSelect={onSelectTask} onPress={() => onPrefetch?.(true)} />
+            <TaskProbe key={item.taskId} summary={item} showPacketLoss={showPacketLoss} onSelect={onSelectTask} onPress={() => onPrefetch?.(true)} />
           ))}
         </div>
       ) : (

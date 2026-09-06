@@ -1,4 +1,5 @@
 const STATIC_CURRENCY_LABELS: Record<string, string> = {
+  CNY: "\u00a5",
   JPY: "JPY ",
   USD: "$",
   EUR: "\u20ac",

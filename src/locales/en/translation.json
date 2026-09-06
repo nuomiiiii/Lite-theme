@@ -53,6 +53,7 @@
     "realtimeTransfer": "Live Transfer",
     "networkQuality": "Network Quality",
     "recentHour": "Last hour",
+    "packetLoss": "Packet loss",
     "monthlyTraffic": "Monthly Traffic",
     "cumulative": "Total"
   },

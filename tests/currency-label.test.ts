@@ -5,6 +5,7 @@ import { detectCanadianDollarCurrency, getStaticCurrencyLabel } from "../src/lib
 
 test("displays Canadian dollars as C$", () => {
   assert.equal(getStaticCurrencyLabel("CAD"), "C$")
+  assert.equal(getStaticCurrencyLabel("CNY"), "¥")
 })
 
 test("recognizes Canadian dollars embedded in legacy amount values", () => {

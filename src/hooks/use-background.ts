@@ -10,10 +10,10 @@ declare global {
     ForceShowMap: boolean
     ForcePeakCutEnabled: boolean
     ShowServerBandwidth?: boolean
+    ShowHomePacketLoss?: boolean
+    DefaultProbeChartHours?: string
     HomeSortType?: string
     HomeSortOrder?: string
-    DefaultBillingCurrency?: string
-    CnySymbolStyle?: string
   }
 }
 

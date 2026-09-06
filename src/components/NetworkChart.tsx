@@ -9,8 +9,9 @@ import { readHomeLatencyCache } from "@/lib/home-latency"
 import { selectedTaskSampleCount } from "@/lib/probe-samples"
 import { pickBestProbeTask } from "@/lib/probe-route"
 import { monitorNameForId, nextActiveCharts } from "@/lib/probe-chart-selection"
-import { DEFAULT_MONITOR_HOURS, MONITOR_STALE_TIME_MS, monitorQueryKey } from "@/lib/prefetch-monitor"
+import { MONITOR_STALE_TIME_MS, monitorQueryKey } from "@/lib/prefetch-monitor"
 import { monitorsFromHomeLatency } from "@/lib/ping-display"
+import { readDefaultProbeChartHours } from "@/lib/theme-config"
 import { cn, formatTime, parseLiteWebsocketMessage } from "@/lib/utils"
 import { formatCompactTime } from "@/lib/format"
 import { PROBE_COLORS } from "@/lib/theme-tokens"
@@ -142,7 +143,7 @@ function formatPercentage(value: number | null, digits = 1): string {
 export function NetworkChart({ server_id, show, initialMonitorId }: { server_id: number; show: boolean; initialMonitorId?: number }) {
   const { t } = useTranslation()
   const { lastMessage } = useWebSocketContext()
-  const [hours, setHours] = React.useState(DEFAULT_MONITOR_HOURS)
+  const [hours, setHours] = React.useState<number>(readDefaultProbeChartHours)
 
   const fallbackServer = useMemo(() => {
     if (!lastMessage) return undefined

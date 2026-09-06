@@ -17,7 +17,7 @@ test("publishes the independent Lite-Theme identity", () => {
   assert.equal(existsSync(new URL("../komari-theme.json", import.meta.url)), false)
   assert.equal(manifest.name, "Lite-Theme")
   assert.equal(manifest.short, "lite-theme")
-  assert.equal(manifest.version, "1.0.8")
+  assert.equal(manifest.version, "1.1.0")
   assert.equal(manifest.author, "Nomi")
   assert.equal(manifest.url, "https://github.com/nuomiiiii/Lite-theme")
   assert.equal(manifest.preview, "preview.png")
@@ -31,9 +31,9 @@ test("keeps only settings used by the fixed default card experience", () => {
     "CustomLogo",
     "ForceTheme",
     "ForcePeakCutEnabled",
+    "DefaultProbeChartHours",
+    "ShowHomePacketLoss",
     "ShowServerBandwidth",
-    "DefaultBillingCurrency",
-    "CnySymbolStyle",
   ])
 })
 
@@ -50,11 +50,15 @@ test("does not expose alternate card, map or decoration switches", () => {
     "HideIPv4IPv6Tag",
     "TrafficResetDayOverrides",
     "ServerBillingCurrencyOverrides",
+    "DefaultBillingCurrency",
+    "CnySymbolStyle",
   ]) {
     assert.equal(keys.includes(removed), false, `${removed} should not be present`)
   }
   assert.doesNotMatch(utils, /TrafficResetDayOverrides/)
   assert.doesNotMatch(utils, /ServerBillingCurrencyOverrides/)
+  assert.doesNotMatch(utils, /DefaultBillingCurrency/)
+  assert.doesNotMatch(utils, /CnySymbolStyle/)
 })
 
 test("shows server bandwidth on cards only when the theme switch is on", () => {
@@ -65,6 +69,24 @@ test("shows server bandwidth on cards only when the theme switch is on", () => {
   assert.match(serverCard, /readShowServerBandwidth/)
   assert.match(serverCard, /serverBandwidthLabel/)
   assert.doesNotMatch(serverCard, /planDataMod\?\.bandwidth/)
+})
+
+test("shows homepage packet loss only when the theme switch is on", () => {
+  const setting = settings.find((item) => item.key === "ShowHomePacketLoss")
+  const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
+  assert.equal(setting?.type, "switch")
+  assert.equal(setting?.default, false)
+  assert.match(latency, /readShowHomePacketLoss/)
+  assert.match(latency, /showPacketLoss/)
+})
+
+test("lets admins pick the default probe-chart window", () => {
+  const setting = settings.find((item) => item.key === "DefaultProbeChartHours")
+  assert.equal(setting?.type, "select")
+  assert.equal(setting?.default, "1h")
+  assert.equal(setting?.options, "1h,6h,12h,24h,3d,7d,30d")
+  assert.match(networkChart, /readDefaultProbeChartHours/)
+  assert.match(networkChart, /useState<number>\(readDefaultProbeChartHours\)/)
 })
 
 test("keeps language, appearance and login in the public header", () => {

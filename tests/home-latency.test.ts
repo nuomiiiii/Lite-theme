@@ -2,7 +2,16 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 
-import { HOME_LATENCY_CARD_LIMIT, homeLatencyGridTemplate, hourPacketFillPercent, latencyBarTone, mapPingStatsToHomeLatency, readHomeLatencyCache, summarizeHomeLatencySamples, writeHomeLatencyCache } from "../src/lib/home-latency.ts"
+import {
+  HOME_LATENCY_CARD_LIMIT,
+  formatProbePacketLoss,
+  hourPacketFillPercent,
+  latencyBarTone,
+  mapPingStatsToHomeLatency,
+  readHomeLatencyCache,
+  summarizeHomeLatencySamples,
+  writeHomeLatencyCache,
+} from "../src/lib/home-latency.ts"
 
 function memoryStorage() {
   const values = new Map<string, string>()
@@ -52,12 +61,7 @@ test("ignores stale or unrelated latency cache entries", () => {
 test("keeps every ping task as a separate weighted summary", () => {
   const bucket = 5 * 60_000
   const result = summarizeHomeLatencySamples(
-    [
-      sample("1", bucket, 20, 0, 10),
-      sample("1", bucket, 40, 0.1, 10),
-      sample("1", bucket * 2, 35, 0, 20),
-      sample("2", bucket * 2, 80, 0, 5),
-    ],
+    [sample("1", bucket, 20, 0, 10), sample("1", bucket, 40, 0.1, 10), sample("1", bucket * 2, 35, 0, 20), sample("2", bucket * 2, 80, 0, 5)],
     2,
   )
 
@@ -74,10 +78,7 @@ test("keeps every ping task as a separate weighted summary", () => {
 
 test("keeps each task timeline continuous when records skip intervals", () => {
   const bucket = 5 * 60_000
-  const result = summarizeHomeLatencySamples(
-    [sample("1", bucket, 20, 1, 1), sample("1", bucket * 3, 30, 0, 1)],
-    3,
-  )["node-a"][0]
+  const result = summarizeHomeLatencySamples([sample("1", bucket, 20, 1, 1), sample("1", bucket * 3, 30, 0, 1)], 3)["node-a"][0]
 
   assert.deepEqual(result.latencyHistory, [null, null, 30])
   assert.deepEqual(result.packetLossHistory, [100, null, 0])
@@ -86,10 +87,7 @@ test("keeps each task timeline continuous when records skip intervals", () => {
 
 test("weights a task loss rate by probe count", () => {
   const bucket = 5 * 60_000
-  const result = summarizeHomeLatencySamples(
-    [sample("1", bucket, null, 1, 2), sample("1", bucket * 2, 25, 0, 18)],
-    2,
-  )["node-a"][0]
+  const result = summarizeHomeLatencySamples([sample("1", bucket, null, 1, 2), sample("1", bucket * 2, 25, 0, 18)], 2)["node-a"][0]
 
   assert.equal(result.packetLoss, 10)
   assert.deepEqual(result.packetLossHistory, [100, 0])
@@ -99,6 +97,14 @@ test("keeps total packet loss visible without inventing latency", () => {
   const result = summarizeHomeLatencySamples([sample("1", 60_000, null, 1, 12)])["node-a"][0]
   assert.equal(result.latency, null)
   assert.equal(result.packetLoss, 100)
+})
+
+test("formats probe packet loss with one decimal", () => {
+  assert.equal(formatProbePacketLoss(null), "--")
+  assert.equal(formatProbePacketLoss(-1), "--")
+  assert.equal(formatProbePacketLoss(0), "0.0%")
+  assert.equal(formatProbePacketLoss(1.54), "1.5%")
+  assert.equal(formatProbePacketLoss(100), "100.0%")
 })
 
 test("fills the probe bar from last-hour reply rate, not expected ping count", () => {
@@ -144,26 +150,19 @@ test("maps ping metric stats onto per-task home summaries", () => {
 })
 
 test("treats zero-sample ping stats as empty instead of a full green bar", () => {
-  const result = mapPingStatsToHomeLatency([
-    { entity_id: "node-a", task_id: "1", name: "Fujian", latest: null, loss: 0, total: 0, valid: 0 },
-  ])
+  const result = mapPingStatsToHomeLatency([{ entity_id: "node-a", task_id: "1", name: "Fujian", latest: null, loss: 0, total: 0, valid: 0 }])
   assert.equal(result["node-a"][0].latency, null)
   assert.equal(result["node-a"][0].packetLoss, null)
   assert.equal(hourPacketFillPercent(result["node-a"][0]), 0)
 })
 
-test("homepage cards keep at most four probe tasks and fill one PC row", () => {
+test("homepage cards keep at most four probe tasks", () => {
   assert.equal(HOME_LATENCY_CARD_LIMIT, 4)
-  assert.equal(homeLatencyGridTemplate(1), "repeat(1, minmax(0, 1fr))")
-  assert.equal(homeLatencyGridTemplate(2), "repeat(2, minmax(0, 1fr))")
-  assert.equal(homeLatencyGridTemplate(3), "repeat(3, minmax(0, 1fr))")
-  assert.equal(homeLatencyGridTemplate(4), "repeat(4, minmax(0, 1fr))")
-  assert.equal(homeLatencyGridTemplate(8), "repeat(4, minmax(0, 1fr))")
 })
 
-test("mobile homepage probes wrap at two per row and stretch a leftover third", () => {
+test("homepage probes use two columns and stretch the last odd task on every viewport", () => {
   const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
   assert.match(latency, /grid-cols-2/)
-  assert.match(latency, /max-\[620px\]:\[&>\.probe:nth-child\(odd\):last-child\]:col-span-2/)
-  assert.match(latency, /min-\[621px\]:\[grid-template-columns:var\(--home-latency-cols\)\]/)
+  assert.match(latency, /\[&>\.probe:nth-child\(odd\):last-child\]:col-span-2/)
+  assert.doesNotMatch(latency, /homeLatencyGridTemplate|home-latency-cols/)
 })

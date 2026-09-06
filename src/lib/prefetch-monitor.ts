@@ -1,4 +1,5 @@
 import { fetchMonitor } from "@/lib/lite-api"
+import { readDefaultProbeChartHours } from "@/lib/theme-config"
 import type { QueryClient } from "@tanstack/react-query"
 
 export const DEFAULT_MONITOR_HOURS = 1
@@ -21,7 +22,7 @@ function isFresh(queryClient: QueryClient, serverId: number, hours: number) {
 }
 
 function pumpIdleQueue(queryClient: QueryClient) {
-  const hours = DEFAULT_MONITOR_HOURS
+  const hours = readDefaultProbeChartHours()
   while (idleInflight < MAX_IDLE_PREFETCH && idleQueue.length > 0) {
     const serverId = idleQueue.shift()
     if (serverId === undefined) return
@@ -48,7 +49,7 @@ export function prefetchServerMonitor(
 ) {
   if (!Number.isSafeInteger(serverId) || serverId < 0) return
 
-  const hours = options?.hours ?? DEFAULT_MONITOR_HOURS
+  const hours = options?.hours ?? readDefaultProbeChartHours()
   const priority = options?.priority === true
   if (isFresh(queryClient, serverId, hours)) return
 

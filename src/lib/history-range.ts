@@ -10,6 +10,12 @@ export const HISTORY_TIME_OPTIONS = [
 
 export type HistoryHours = (typeof HISTORY_TIME_OPTIONS)[number]["value"]
 
+export function parseHistoryHours(value: unknown, fallback: HistoryHours = 1): HistoryHours {
+  const raw = String(value ?? "").trim()
+  const match = HISTORY_TIME_OPTIONS.find((option) => option.label === raw || String(option.value) === raw)
+  return match?.value ?? fallback
+}
+
 export function historyMaxPoints(hours: number): number {
   if (hours <= 1) return 90
   if (hours <= 24) return 180

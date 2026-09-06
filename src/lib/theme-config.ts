@@ -1,3 +1,5 @@
+import { parseHistoryHours, type HistoryHours } from "./history-range.ts"
+
 function readWindowSetting(key: string): unknown {
   if (typeof window === "undefined") return undefined
   return (window as unknown as Record<string, unknown>)[key]
@@ -14,6 +16,14 @@ export function readShowServerBandwidth(): boolean {
   return readThemeBoolean("ShowServerBandwidth", false)
 }
 
+export function readShowHomePacketLoss(): boolean {
+  return readThemeBoolean("ShowHomePacketLoss", false)
+}
+
 export function serverBandwidthLabel(value: unknown): string {
   return String(value || "").trim()
+}
+
+export function readDefaultProbeChartHours(): HistoryHours {
+  return parseHistoryHours(readWindowSetting("DefaultProbeChartHours"))
 }

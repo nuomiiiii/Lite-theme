@@ -53,6 +53,7 @@
     "realtimeTransfer": "实时传输",
     "networkQuality": "网络质量",
     "recentHour": "最近 1 小时",
+    "packetLoss": "丢包率",
     "monthlyTraffic": "本月流量",
     "cumulative": "累计"
   },

@@ -19,6 +19,13 @@ export function packetFillTone(percent: number): MeterTone {
   return "coral"
 }
 
+export function packetLossTone(loss: number | null): MeterTone {
+  if (loss === null || !Number.isFinite(loss) || loss < 0) return "empty"
+  if (loss <= 100 - PACKET_FILL_GREEN_MIN) return "green"
+  if (loss <= 100 - PACKET_FILL_AMBER_MIN) return "amber"
+  return "coral"
+}
+
 export function resourceUsageTone(percent: number): MeterTone {
   if (!Number.isFinite(percent) || percent < 0) return "empty"
   if (percent >= RESOURCE_AMBER_MAX) return "coral"

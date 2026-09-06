@@ -53,6 +53,7 @@
     "realtimeTransfer": "リアルタイム転送",
     "networkQuality": "遅延監視",
     "recentHour": "直近 1 時間",
+    "packetLoss": "パケットロス",
     "monthlyTraffic": "今月のトラフィック",
     "cumulative": "累計"
   },

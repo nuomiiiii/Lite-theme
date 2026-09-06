@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 
-import { packetFillTone, resourceUsageTone, cpuCoreCount, loadUsagePercent } from "../src/lib/meter-tone.ts"
+import { packetFillTone, packetLossTone, resourceUsageTone, cpuCoreCount, loadUsagePercent } from "../src/lib/meter-tone.ts"
 
 const serverCard = readFileSync(new URL("../src/components/ServerCard.tsx", import.meta.url), "utf8")
 const utils = readFileSync(new URL("../src/lib/utils.ts", import.meta.url), "utf8")
@@ -16,6 +16,17 @@ test("packet fill is greener when the last hour is more complete", () => {
   assert.equal(packetFillTone(94.9), "amber")
   assert.equal(packetFillTone(95), "green")
   assert.equal(packetFillTone(100), "green")
+})
+
+test("packet-loss numbers stay green until 5 percent", () => {
+  assert.equal(packetLossTone(null), "empty")
+  assert.equal(packetLossTone(-1), "empty")
+  assert.equal(packetLossTone(0), "green")
+  assert.equal(packetLossTone(5), "green")
+  assert.equal(packetLossTone(5.1), "amber")
+  assert.equal(packetLossTone(20), "amber")
+  assert.equal(packetLossTone(20.1), "coral")
+  assert.equal(packetLossTone(100), "coral")
 })
 
 test("resource meters turn amber then coral as usage rises", () => {

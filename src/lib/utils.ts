@@ -296,18 +296,7 @@ export interface PublicNoteData {
   planDataMod?: PlanData
 }
 
-// CNY \u663e\u793a\u98ce\u683c:\u00a5 \u89c6\u89c9\u7b80\u6d01,\u4f46\u4e0e JPY \u5171\u7528\u7b26\u53f7\u6709\u6b67\u4e49\u3002\u5f53\u90e8\u7f72\u91cc"\u7edd\u5927\u591a\u6570 CNY + \u5c11\u6570 JPY"
-// \u65f6,\u7528 \u00a5 \u8868\u793a CNY\u3001\u7528 JPY \u6587\u5b57\u6807\u8bb0\u65e5\u5143\u6700\u81ea\u7136(\u6d88\u6b67\u4e49\u8d1f\u62c5\u843d\u5728\u5c11\u6570\u6d3e);\u53cd\u4e4b\u4ea6\u7136\u3002
-// 默认 ¥，可在主题设置的 CnySymbolStyle 中切换为 CNY。
-function getCnyLabel(): string {
-  if (typeof window === "undefined") return "\u00a5"
-  const style = (window as unknown as Record<string, unknown>).CnySymbolStyle
-  const raw = typeof style === "string" ? style.trim().toUpperCase() : ""
-  return raw === "CNY" ? "CNY " : "\u00a5"
-}
-
 function getCurrencyLabel(currency: string): string | undefined {
-  if (currency === "CNY") return getCnyLabel()
   return getStaticCurrencyLabel(currency)
 }
 
@@ -376,26 +365,9 @@ export function formatBillingAmount(amount: string, currency?: string): string {
   return value ? `${label}${value}` : rawAmount
 }
 
-function isFollowBackendCurrency(value?: unknown): boolean {
-  const raw = typeof value === "string" ? value.trim() : ""
-  const normalized = raw.toLowerCase()
-  return (
-    raw === "" ||
-    ["backend", "follow-backend", "follow backend", "auto", "default", "\u8ddf\u968f\u540e\u7aef", "\u4f7f\u7528\u540e\u7aef"].includes(normalized)
-  )
-}
-
 export function resolveThemeBillingCurrency(server: any, existingCurrency?: string): string {
-  const win = typeof window === "undefined" ? {} : (window as unknown as Record<string, unknown>) || {}
-
   const tagCurrency = readTagCurrency(server)
   if (tagCurrency) return tagCurrency
-
-  const defaultCurrency = win.DefaultBillingCurrency
-  if (!isFollowBackendCurrency(defaultCurrency)) {
-    return normalizeBillingCurrency(defaultCurrency)
-  }
-
   return normalizeBillingCurrency(server?.currency) || normalizeBillingCurrency(existingCurrency)
 }
 
