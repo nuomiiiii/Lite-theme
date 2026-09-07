@@ -74,8 +74,12 @@
         const root = document.documentElement
 
         function updateThemeColor(isDark) {
-          const themeColor = isDark ? "#161c24" : "#ffffff"
-          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
+          const themeColor = isDark ? "#161C24" : "#FFFFFF"
+          document.querySelectorAll('meta[name="theme-color"]').forEach((el) => el.remove())
+          const meta = document.createElement("meta")
+          meta.setAttribute("name", "theme-color")
+          meta.setAttribute("content", themeColor)
+          document.head.appendChild(meta)
         }
 
         function setTheme(newTheme) {
@@ -116,7 +120,7 @@
     <meta name="description" content="Lite server monitor." />
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="hsl(0 0% 98%)" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

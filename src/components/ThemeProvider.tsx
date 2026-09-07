@@ -1,5 +1,7 @@
 import { ReactNode, createContext, useEffect, useState } from "react"
 
+import { applyAppearanceChrome, resolvedAppearanceIsDark } from "@/lib/appearance-chrome"
+
 export type Theme = "dark" | "light" | "system"
 
 type ThemeProviderProps = {
@@ -26,20 +28,22 @@ export function ThemeProvider({ children, storageKey = "vite-ui-theme" }: ThemeP
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove("light", "dark")
+    const applyResolved = (isDark: boolean) => {
+      root.classList.remove("light", "dark")
+      root.classList.add(isDark ? "dark" : "light")
+      applyAppearanceChrome(isDark)
+    }
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    applyResolved(resolvedAppearanceIsDark(theme))
 
-      root.classList.add(systemTheme)
-      const themeColor = systemTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)"
-      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
+    if (theme !== "system") {
       return
     }
 
-    root.classList.add(theme)
-    const themeColor = theme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)"
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const onChange = (event: MediaQueryListEvent) => applyResolved(event.matches)
+    mediaQuery.addEventListener("change", onChange)
+    return () => mediaQuery.removeEventListener("change", onChange)
   }, [theme])
 
   const value = {
