@@ -67,6 +67,8 @@
         }
       }
     </style>
+    <meta charset="UTF-8" />
+    <meta name="theme-color" content="#FFFFFF" />
     <script>
       ;(function () {
         const storageKey = "vite-ui-theme"
@@ -75,11 +77,7 @@
 
         function updateThemeColor(isDark) {
           const themeColor = isDark ? "#161C24" : "#FFFFFF"
-          document.querySelectorAll('meta[name="theme-color"]').forEach((el) => el.remove())
-          const meta = document.createElement("meta")
-          meta.setAttribute("name", "theme-color")
-          meta.setAttribute("content", themeColor)
-          document.head.appendChild(meta)
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
         }
 
         function setTheme(newTheme) {
@@ -99,11 +97,9 @@
           setTheme(theme)
         }
 
-        // Add loaded class after React has mounted
         window.addEventListener("load", () => {
           const root = document.getElementById("root")
           if (root) {
-            // 使用 RAF 确保在下一帧渲染
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
                 root.classList.add("loaded")
@@ -113,14 +109,12 @@
         })
       })()
     </script>
-    <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.png?v=lite-icon-0e86dd" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Lite</title>
     <meta name="description" content="Lite server monitor." />
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FFFFFF" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
