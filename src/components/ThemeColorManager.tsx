@@ -1,21 +1,21 @@
-"use client"
-
 import { useTheme } from "@/hooks/use-theme"
 import { applyAppearanceChrome, resolvedAppearanceIsDark } from "@/lib/appearance-chrome"
-import { useEffect } from "react"
+import { useLayoutEffect } from "react"
 
 export function ThemeColorManager() {
   const { theme } = useTheme()
 
-  useEffect(() => {
-    const updateThemeColor = () => applyAppearanceChrome(resolvedAppearanceIsDark(theme))
+  useLayoutEffect(() => {
+    applyAppearanceChrome(resolvedAppearanceIsDark(theme))
 
-    updateThemeColor()
+    if (theme !== "system") {
+      return
+    }
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
-    mediaQuery.addEventListener("change", updateThemeColor)
-
-    return () => mediaQuery.removeEventListener("change", updateThemeColor)
+    const onChange = () => applyAppearanceChrome(resolvedAppearanceIsDark(theme))
+    mediaQuery.addEventListener("change", onChange)
+    return () => mediaQuery.removeEventListener("change", onChange)
   }, [theme])
 
   return null
