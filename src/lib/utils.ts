@@ -1,5 +1,5 @@
 import { SharedClient } from "@/hooks/use-rpc2"
-import { detectCanadianDollarCurrency, getStaticCurrencyLabel } from "@/lib/currency-label"
+import { detectCanadianDollarCurrency, detectHongKongDollarCurrency, getStaticCurrencyLabel } from "@/lib/currency-label"
 import { formatBytes } from "@/lib/format"
 import { leftoverStatusUuids, listLiteNodes, resolveLiteServerEntries } from "@/lib/lite-node-list"
 import { uuidToNumber } from "@/lib/server-route"
@@ -355,7 +355,7 @@ export function formatBillingAmount(amount: string, currency?: string): string {
     return rawAmount
   }
 
-  const normalizedCurrency = normalizeBillingCurrency(currency) || detectCanadianDollarCurrency(rawAmount)
+  const normalizedCurrency = normalizeBillingCurrency(currency) || detectCanadianDollarCurrency(rawAmount) || detectHongKongDollarCurrency(rawAmount)
   if (!normalizedCurrency) {
     return rawAmount
   }

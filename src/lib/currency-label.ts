@@ -15,6 +15,7 @@ const STATIC_CURRENCY_LABELS: Record<string, string> = {
   "\u00a3": "\u00a3",
   "\u00a5": "\u00a5",
   "\uffe5": "\uffe5",
+  "HK$": "HK$",
 }
 
 export function getStaticCurrencyLabel(currency: string): string | undefined {
@@ -24,4 +25,9 @@ export function getStaticCurrencyLabel(currency: string): string | undefined {
 export function detectCanadianDollarCurrency(amount: string): "CAD" | undefined {
   const value = String(amount || "").trim()
   return /^(?:CAD|CA\$|C\$)\s*/i.test(value) || /\s*(?:CAD|CA\$|C\$)$/i.test(value) ? "CAD" : undefined
+}
+
+export function detectHongKongDollarCurrency(amount: string): "HKD" | undefined {
+  const value = String(amount || "").trim()
+  return /^(?:HKD|HK\$)\s*/i.test(value) || /\s*(?:HKD|HK\$)$/i.test(value) ? "HKD" : undefined
 }
