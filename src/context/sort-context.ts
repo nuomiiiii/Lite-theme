@@ -1,6 +1,6 @@
-export type SortType = "default" | "name" | "uptime" | "system" | "cpu" | "mem" | "disk" | "up" | "down" | "up total" | "down total"
+export type SortType = "default" | "name" | "uptime" | "system" | "cpu" | "mem" | "disk" | "up" | "down"
 
-export const SORT_TYPES: SortType[] = ["default", "name", "uptime", "system", "cpu", "mem", "disk", "up", "down", "up total", "down total"]
+export const SORT_TYPES: SortType[] = ["default", "name", "uptime", "system", "cpu", "mem", "disk", "up", "down"]
 
 export type SortOrder = "asc" | "desc"
 

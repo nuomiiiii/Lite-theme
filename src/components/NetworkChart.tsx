@@ -17,7 +17,7 @@ import { formatCompactTime } from "@/lib/format"
 import { PROBE_COLORS } from "@/lib/theme-tokens"
 import { LiteMonitor, ServerMonitorChart } from "@/types/lite-api"
 import { useQuery } from "@tanstack/react-query"
-import { Button, MenuItem, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
+import { Button, Chip, MenuItem, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
 import { Activity, Route, ShieldCheck, Waypoints } from "lucide-react"
 import * as React from "react"
 import { useCallback, useMemo } from "react"
@@ -537,35 +537,41 @@ export const NetworkChartClient = React.memo(function NetworkChart({
               <CardTitle className="truncate text-sm">{t("monitor.overview")}</CardTitle>
               {showTaskLayout ? (
                 <p className="mt-0.5 truncate text-[11px] font-normal text-muted-foreground">
-                  {`${serverName || "--"} · ${t("monitor.selectedTasks", { defaultValue: "已选任务" })} ${activeCharts.length}/${chartDataKey.length || 0}`}
+                  {`${serverName || "--"} · ${t("monitor.selectedTasks")} ${activeCharts.length}/${chartDataKey.length || 0}`}
                 </p>
               ) : null}
             </div>
           </div>
           {showTaskLayout ? (
             <Button size="small" variant="text" onClick={selectAllCharts} sx={{ height: 30, px: 1, fontSize: 12, flexShrink: 0 }}>
-              {t("monitor.allTasks", { defaultValue: "全部任务" })}
+              {t("monitor.allTasks")}
             </Button>
           ) : null}
         </CardHeader>
         {showTaskLayout ? (
           <>
-            <div className="flex flex-wrap gap-1.5 px-4 pb-3">
+            <div className="flex flex-wrap gap-2 px-5 pb-4">
               {chartDataKey.map((name) => {
                 const selected = activeCharts.includes(name)
                 return (
-                  <button
+                  <Chip
                     key={name}
-                    type="button"
-                    aria-pressed={selected}
+                    clickable
                     onClick={() => toggleChart(name)}
-                    className={cn(
-                      "max-w-full truncate rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
-                      selected ? "border-[#0E86DD] bg-[#0E86DD] text-white" : "border-[rgba(14,134,221,0.25)] bg-[#E8F4FC] text-[#0E86DD] dark:bg-[#12334A] dark:text-[#70BFF0]",
-                    )}
-                  >
-                    {name}
-                  </button>
+                    aria-pressed={selected}
+                    label={name}
+                    className="task-chip"
+                    sx={{
+                      height: 28,
+                      fontSize: 11,
+                      borderRadius: "6px",
+                      maxWidth: "100%",
+                      border: selected ? "1px solid #078DEE" : "1px solid var(--lite-line)",
+                      bgcolor: selected ? "rgba(7,141,238,0.10)" : "var(--lite-soft)",
+                      color: selected ? "#078DEE" : "#637381",
+                      ".dark &": { color: selected ? "#68B0F5" : "#C4CDD5" },
+                    }}
+                  />
                 )
               })}
             </div>
@@ -586,14 +592,14 @@ export const NetworkChartClient = React.memo(function NetworkChart({
         ) : (
           <CardContent className="flex min-h-[120px] items-center justify-center px-4 py-8">
             {isLoading ? (
-              <div className="text-muted-foreground" aria-label={t("common.loading", "Loading")}><LoadingSpinner /></div>
+              <div className="text-muted-foreground" aria-label={t("common.loading")}><LoadingSpinner /></div>
             ) : hasError ? (
               <div className="flex flex-col items-center gap-3 text-center">
-                <p className="text-sm font-normal text-muted-foreground">{t("monitor.loadError", "Failed to load latency data")}</p>
-                <Button size="small" variant="outlined" onClick={onRetry}>{t("monitor.retry", "Retry")}</Button>
+                <p className="text-sm font-normal text-muted-foreground">{t("monitor.loadError")}</p>
+                <Button size="small" variant="outlined" onClick={onRetry}>{t("monitor.retry")}</Button>
               </div>
             ) : (
-              <p className="text-sm font-normal text-muted-foreground">{t("monitor.noData", "该服务器未配置延迟检测")}</p>
+              <p className="text-sm font-normal text-muted-foreground">{t("monitor.noData")}</p>
             )}
           </CardContent>
         )}
@@ -625,7 +631,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
               size="small"
               value={String(hours)}
               onChange={(event) => onHoursChange(Number(event.target.value))}
-              aria-label={t("monitor.timeRange", { defaultValue: "时间范围" })}
+              aria-label={t("monitor.timeRange")}
               sx={{ width: 78, height: 32, fontSize: 12, flexShrink: 0 }}
             >
               {HISTORY_TIME_OPTIONS.map((option) => <MenuItem key={option.value} value={String(option.value)}>{option.label}</MenuItem>)}
@@ -674,7 +680,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                         labelFormatter={(_, payload) => formatTime(payload[0].payload.created_at)}
                         formatter={(value, name) => {
                           const isLoss = name === "packet_loss"
-                          const label = isLoss ? t("monitor.packetLoss", "Packet Loss") : name === "avg_delay" ? t("monitor.avgDelay", "Avg Delay") : String(name)
+                          const label = isLoss ? t("monitor.packetLoss") : name === "avg_delay" ? t("monitor.avgDelay") : String(name)
                           return (
                             <div className="flex flex-1 items-center justify-between leading-none">
                               <span className="text-muted-foreground">{label}</span>
@@ -691,9 +697,9 @@ export const NetworkChartClient = React.memo(function NetworkChart({
               {!hasChartData && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-md bg-muted/25">
                   {isLoading ? (
-                    <div className="text-muted-foreground" aria-label={t("common.loading", "Loading")}><LoadingSpinner /></div>
+                    <div className="text-muted-foreground" aria-label={t("common.loading")}><LoadingSpinner /></div>
                   ) : (
-                    <p className="text-sm font-normal text-muted-foreground">{t("monitor.noSamples", "任务已配置，暂无采样数据")}</p>
+                    <p className="text-sm font-normal text-muted-foreground">{t("monitor.noSamples")}</p>
                   )}
                 </div>
               )}
@@ -702,19 +708,20 @@ export const NetworkChartClient = React.memo(function NetworkChart({
         ) : (
           <CardContent className="flex min-h-[120px] items-center justify-center px-4 py-8">
             {isLoading ? (
-              <div className="text-muted-foreground" aria-label={t("common.loading", "Loading")}><LoadingSpinner /></div>
+              <div className="text-muted-foreground" aria-label={t("common.loading")}><LoadingSpinner /></div>
             ) : hasError ? (
               <div className="flex flex-col items-center gap-3 text-center">
-                <p className="text-sm font-normal text-muted-foreground">{t("monitor.loadError", "Failed to load latency data")}</p>
-                <Button size="small" variant="outlined" onClick={onRetry}>{t("monitor.retry", "Retry")}</Button>
+                <p className="text-sm font-normal text-muted-foreground">{t("monitor.loadError")}</p>
+                <Button size="small" variant="outlined" onClick={onRetry}>{t("monitor.retry")}</Button>
               </div>
             ) : (
-              <p className="text-sm font-normal text-muted-foreground">{t("monitor.noData", "该服务器未配置延迟检测")}</p>
+              <p className="text-sm font-normal text-muted-foreground">{t("monitor.noData")}</p>
             )}
           </CardContent>
         )}
       </Card>
 
+      <div className="grid gap-4 min-[1101px]:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 px-4 py-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><ShieldCheck className="size-4" /></span>
@@ -723,7 +730,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
             <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">{t("monitor.nodesHint")}</p>
           </div>
         </CardHeader>
-        <TableContainer sx={{ overflow: "hidden" }}>
+        <TableContainer sx={{ overflow: "hidden" }} className="max-[620px]:hidden">
           <Table size="small" aria-label={t("monitor.nodesTable")} sx={{ tableLayout: "fixed", width: "100%" }}>
             <TableHead>
               <TableRow>
@@ -743,6 +750,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                       color: "text.secondary",
                       lineHeight: 1.25,
                       whiteSpace: "normal",
+                      bgcolor: "var(--lite-soft)",
                     }}
                   >
                     {label}
@@ -765,6 +773,30 @@ export const NetworkChartClient = React.memo(function NetworkChart({
             </TableBody>
           </Table>
         </TableContainer>
+        <div className="hidden max-[620px]:block">
+          {selectedTaskSummaries.length > 0 ? selectedTaskSummaries.map((summary) => (
+            <div key={summary.name} className="grid grid-cols-3 gap-x-2.5 gap-y-2.5 border-t border-[var(--lite-line)] px-[15px] py-3.5">
+              <div className="col-span-2 min-w-0">
+                <p className="truncate text-xs font-medium">{summary.name}</p>
+              </div>
+              <p className="text-right text-[9px] text-[#919EAB]">{summary.lastUpdated === null ? "--" : formatCompactTime(summary.lastUpdated)}</p>
+              <div>
+                <span className="mb-1 block text-[9px] text-[#919EAB]">{t("monitor.currentDelay")}</span>
+                <b className="text-[17px] font-medium">{formatDelay(summary.currentDelay)}</b>
+              </div>
+              <div>
+                <span className="mb-1 block text-[9px] text-[#919EAB]">{t("monitor.avgDelayFull")}</span>
+                <b className="text-[17px] font-medium">{formatDelay(summary.averageDelay)}</b>
+              </div>
+              <div>
+                <span className="mb-1 block text-[9px] text-[#919EAB]">{t("monitor.packetLoss")}</span>
+                <b className="text-[17px] font-medium">{formatPercentage(summary.packetLoss)}</b>
+              </div>
+            </div>
+          )) : (
+            <p className="px-4 py-8 text-center text-xs text-[#919EAB]">{hasTasks ? t("monitor.noSamples") : t("monitor.noProbeData")}</p>
+          )}
+        </div>
       </Card>
 
       <Card className="overflow-hidden">
@@ -789,6 +821,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
           ))}
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 })

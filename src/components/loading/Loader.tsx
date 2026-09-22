@@ -1,7 +1,7 @@
 import CircularProgress from "@mui/material/CircularProgress"
 import { useTranslation } from "react-i18next"
 
-const BRAND = "#0E86DD"
+const BRAND = "#078DEE"
 
 export const Loader = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation()

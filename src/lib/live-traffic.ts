@@ -12,6 +12,11 @@ export function resetHomeTraffic(): void {
   samples.length = 0
 }
 
+export function homeTrafficWindowMs(samples: TrafficSample[]): number {
+  if (samples.length < 2) return 0
+  return Math.max(0, samples[samples.length - 1]!.t - samples[0]!.t)
+}
+
 export function recordHomeTraffic(upSpeed: number, downSpeed: number, now = Date.now()): TrafficSample[] {
   const last = samples.at(-1)
   if (!last) {

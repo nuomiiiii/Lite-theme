@@ -66,7 +66,7 @@ const TAG_TRAFFIC_RESET_REMOVE = /<\s*TRD\s*:\s*\d{1,2}\s*>/ig
 const NAMED_COLOR_PREFIX = new RegExp(`^(${[...TAG_COLOR_ORDER, "iris"].join("|")}):`, "i")
 
 export const SERVER_TAG_TONE: Record<ServerTagColor, { bg: string; fg: string; darkBg: string; darkFg: string }> = {
-  gray: { bg: "#F0F0F3", fg: "#60646C", darkBg: "#2A2D32", darkFg: "#B0B4BA" },
+  gray: { bg: "#E0E1E6", fg: "#53565F", darkBg: "#3A3F46", darkFg: "#C4C8CF" },
   gold: { bg: "#F9EDD1", fg: "#71624B", darkBg: "#2C2418", darkFg: "#CBB99F" },
   bronze: { bg: "#F5E8DD", fg: "#7D5E54", darkBg: "#2A221C", darkFg: "#C9B4A8" },
   brown: { bg: "#F5E8DC", fg: "#815C46", darkBg: "#2A211B", darkFg: "#CDB4A4" },

@@ -4,10 +4,6 @@ declare global {
   interface Window {
     CustomBackgroundImage: string
     CustomMobileBackgroundImage: string
-    ForceShowServices: boolean
-    ForceCardInline: boolean
-    EnableVerticalCard: boolean
-    ForceShowMap: boolean
     ForcePeakCutEnabled: boolean
     ShowServerBandwidth?: boolean
     ShowHomePacketLoss?: boolean
@@ -23,12 +19,10 @@ export function useBackground() {
   const [backgroundImage, setBackgroundImage] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    // 监听背景变化
     const handleBackgroundChange = () => {
       setBackgroundImage(window.CustomBackgroundImage || undefined)
     }
 
-    // 初始化检查
     const checkInitialBackground = () => {
       if (window.CustomBackgroundImage) {
         setBackgroundImage(window.CustomBackgroundImage)
@@ -41,7 +35,6 @@ export function useBackground() {
       }
     }
 
-    // 设置一个轮询来检查初始背景
     const intervalId = setInterval(() => {
       if (window.CustomBackgroundImage || sessionStorage.getItem("savedBackgroundImage")) {
         checkInitialBackground()
@@ -57,10 +50,5 @@ export function useBackground() {
     }
   }, [])
 
-  const updateBackground = (newBackground: string | undefined) => {
-    window.CustomBackgroundImage = newBackground || ""
-    window.dispatchEvent(new Event(BACKGROUND_CHANGE_EVENT))
-  }
-
-  return { backgroundImage, updateBackground }
+  return { backgroundImage }
 }

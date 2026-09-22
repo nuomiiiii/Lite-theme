@@ -8,6 +8,7 @@ import {
 import { METER_TONE_COLOR, packetFillTone } from "@/lib/meter-tone"
 import { readShowHomePacketLoss } from "@/lib/theme-config"
 import { THEME } from "@/lib/theme-tokens"
+import { cn } from "@/lib/utils"
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -28,7 +29,7 @@ function TaskProbe({
   const packetLoss = formatProbePacketLoss(summary.packetLoss)
   const percent = hourPacketFillPercent(summary)
   const fillTone = packetFillTone(percent)
-  const lossLabel = t("serverCard.packetLoss", { defaultValue: "丢包率" })
+  const lossLabel = t("serverCard.packetLoss")
   const title = showPacketLoss ? `${summary.taskName} · ${latency} · ${lossLabel} ${packetLoss}` : `${summary.taskName} · ${latency}`
 
   return (
@@ -45,15 +46,15 @@ function TaskProbe({
     >
       <div className="flex min-w-0 items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-xs text-[#566571] dark:text-[#B2C0C9]">{summary.taskName}</span>
-        <span className="flex shrink-0 items-center gap-2 max-[620px]:gap-1.5">
-          <strong className="text-[18px] font-semibold leading-none tabular-nums max-[620px]:text-[15px]" style={{ color: METER_TONE_COLOR[latencyTone] }}>
+        <span className="flex shrink-0 items-center gap-2 max-[967px]:gap-1.5">
+          <strong className="text-[18px] font-semibold leading-none tabular-nums max-[967px]:text-[15px]" style={{ color: METER_TONE_COLOR[latencyTone] }}>
             {latency}
           </strong>
           {showPacketLoss ? (
             <>
               <span aria-hidden="true" className="h-2.5 w-px bg-[#DCE3E7] dark:bg-[#35434D]" />
               <span className="whitespace-nowrap text-[10px] leading-none tabular-nums text-[#7A8792]">
-                <span className="max-[620px]:hidden">{lossLabel} </span>
+                <span className="max-[967px]:hidden">{lossLabel} </span>
                 {packetLoss}
               </span>
             </>
@@ -72,10 +73,12 @@ function TaskProbe({
 
 export default function ServerLatencySummary({
   summaries,
+  stackProbes,
   onSelectTask,
   onPrefetch,
 }: {
   summaries?: HomeLatencyTaskSummary[]
+  stackProbes?: boolean
   onSelectTask?: (taskId: string) => void
   onPrefetch?: (priority: boolean) => void
 }) {
@@ -115,7 +118,7 @@ export default function ServerLatencySummary({
     <section
       ref={sectionRef}
       onPointerEnter={() => onPrefetch?.(true)}
-      className="mx-[22px] border-t border-[#E9EEF1] py-2.5 dark:border-[#26313A] max-[620px]:mx-4"
+      className="mx-[18px] border-t border-[var(--lite-line)] py-2.5 max-[967px]:mx-[15px]"
       data-testid="server-latency-summary"
     >
       <div className="flex items-center justify-between gap-4">
@@ -132,19 +135,25 @@ export default function ServerLatencySummary({
           >
             <path d="M1 6h3l2-4 3 7 3-6 2 3h5" />
           </svg>
-          {t("serverCard.networkQuality", { defaultValue: "延迟监测" })}
+          {t("serverCard.networkQuality")}
         </span>
         <span className="text-[10px] text-[#7A8792]">{t("serverCard.recentHour")}</span>
       </div>
       {displayed.length > 0 ? (
-        <div className="mt-2 grid grid-cols-2 gap-x-5 gap-y-3 [&>.probe:nth-child(odd):last-child]:col-span-2 max-[620px]:gap-x-3">
+        <div
+          data-probe-layout={stackProbes ? "stack" : "grid"}
+          className={cn(
+            "mt-2 grid gap-x-5 gap-y-3 max-[967px]:gap-x-3",
+            stackProbes ? "grid-cols-1" : "grid-cols-2 [&>.probe:nth-child(odd):last-child]:col-span-2",
+          )}
+        >
           {displayed.map((item) => (
             <TaskProbe key={item.taskId} summary={item} showPacketLoss={showPacketLoss} onSelect={onSelectTask} onPress={() => onPrefetch?.(true)} />
           ))}
         </div>
       ) : (
         <div className="grid min-h-[48px] place-items-center text-center text-[11px] leading-snug text-[#7A8792]">
-          {t("monitor.noData", { defaultValue: "暂无延迟监测数据，请在管理后台添加监测任务" })}
+          {t("monitor.noData")}
         </div>
       )}
     </section>

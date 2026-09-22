@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils"
-import { LayoutGroup, m } from "framer-motion"
+import Tabs from "@mui/material/Tabs"
+import Tab from "@mui/material/Tab"
 import { Activity, LayoutDashboard } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -7,34 +7,36 @@ export default function TabSwitch({ tabs, currentTab, setCurrentTab }: { tabs: s
   const { t } = useTranslation()
 
   return (
-    <LayoutGroup>
-      <nav className="flex items-center gap-6 border-b border-[#DDE4E9] dark:border-[#2D3943]" aria-label={t("serverDetail.viewTabs", { defaultValue: "服务器视图" })}>
-        {tabs.map((tab) => {
-          const Icon = tab === "Network" ? Activity : LayoutDashboard
-          const active = currentTab === tab
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setCurrentTab(tab)}
-              className={cn(
-                "relative inline-flex h-10 items-center gap-2 px-0 text-sm font-semibold max-[620px]:flex-1 max-[620px]:justify-center",
-                active ? "text-[#202A33] dark:text-[#EDF3F6]" : "text-[#7A8792]",
-              )}
-            >
-              <Icon className="size-[18px]" />
-              {t(`tabSwitch.${tab}`)}
-              {active && (
-                <m.span
-                  layoutId="lite-detail-tab-ink"
-                  className="absolute bottom-[-1px] left-0 right-0 h-[3px] rounded-t-[3px] bg-[#0E86DD]"
-                  transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                />
-              )}
-            </button>
-          )
-        })}
-      </nav>
-    </LayoutGroup>
+    <Tabs
+      value={currentTab}
+      onChange={(_event, value: string) => setCurrentTab(value)}
+      aria-label={t("serverDetail.viewTabs")}
+      variant="scrollable"
+      scrollButtons={false}
+      sx={{
+        minHeight: 44,
+        mb: 1,
+        borderBottom: "1px solid var(--lite-line)",
+        "& .MuiTab-root": {
+          minHeight: 44,
+          minWidth: { xs: 0, sm: 100 },
+          flex: { xs: 1, sm: "none" },
+          mr: { xs: 0, sm: 4 },
+        },
+      }}
+    >
+      {tabs.map((tab) => {
+        const Icon = tab === "Network" ? Activity : LayoutDashboard
+        return (
+          <Tab
+            key={tab}
+            value={tab}
+            icon={<Icon className="size-[18px]" />}
+            iconPosition="start"
+            label={t(`tabSwitch.${tab}`)}
+          />
+        )
+      })}
+    </Tabs>
   )
 }

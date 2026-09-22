@@ -17,7 +17,7 @@ test("publishes the independent Lite-Theme identity", () => {
   assert.equal(existsSync(new URL("../komari-theme.json", import.meta.url)), false)
   assert.equal(manifest.name, "Lite-Theme")
   assert.equal(manifest.short, "lite-theme")
-  assert.equal(manifest.version, "1.1.2")
+  assert.equal(manifest.version, "1.1.3")
   assert.equal(manifest.author, "Nomi")
   assert.equal(manifest.url, "https://github.com/nuomiiiii/Lite-theme")
   assert.equal(manifest.preview, "preview.png")
@@ -94,9 +94,11 @@ test("keeps language, appearance and login in the public header", () => {
   assert.match(header, /<ModeToggle \/>/)
   assert.match(header, /href="\/admin"/)
   assert.doesNotMatch(header, /startIcon|LogIn/)
-  assert.match(header, /#0E86DD/)
-  assert.match(header, /h-\[calc\(82px\+var\(--safe-area-top\)\)\]/)
+  assert.match(header, /LITE_BLUE/)
+  assert.match(header, /h-\[calc\(var\(--lite-header-height\)\+var\(--safe-area-top\)\)\]/)
   assert.match(header, /lite-page-shell/)
+  assert.match(header, /fixed inset-x-0 top-0/)
+  assert.doesNotMatch(header, /liveConnection|useWebSocketContext/)
   assert.match(themeSwitcher, /AutoThemeIcon/)
   assert.doesNotMatch(themeSwitcher, /BrightnessAuto/)
   assert.doesNotMatch(themeSwitcher, /SunMoon/)
@@ -105,8 +107,8 @@ test("keeps language, appearance and login in the public header", () => {
 test("shows the site description after the header divider on mobile", () => {
   assert.match(header, /site_desc/)
   assert.doesNotMatch(header, /hidden min-w-0 truncate text-base text-\[#7A8792\] sm:inline/)
-  assert.match(header, /line-clamp-2/)
-  assert.match(header, /text-\[11px\] leading-snug/)
+  assert.match(header, /whitespace-nowrap/)
+  assert.match(header, /text-\[13px\] leading-5/)
 })
 
 test("does not render IP addresses on public cards or detail identity", () => {

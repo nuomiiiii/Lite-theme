@@ -1,5 +1,7 @@
 import { alpha, createTheme } from "@mui/material/styles"
 
+import { INK, INK_SECONDARY, LITE_BLUE, LITE_BLUE_HOVER, PAGE_DARK, PAGE_LIGHT, PAPER_DARK, PAPER_LIGHT } from "@/theme/brand"
+
 const GREY = {
   100: "#F9FAFB",
   200: "#F4F6F8",
@@ -12,7 +14,7 @@ const GREY = {
   900: "#141A21",
 }
 
-const ACCENT = "#0E86DD"
+const ACCENT = LITE_BLUE
 
 export function createLiteTheme(mode: "light" | "dark") {
   const isLight = mode === "light"
@@ -21,14 +23,14 @@ export function createLiteTheme(mode: "light" | "dark") {
     palette: {
       mode,
       primary: { main: ACCENT, contrastText: "#FFFFFF" },
-      background: { default: isLight ? "#F4F7F9" : "#11171D", paper: isLight ? "#FFFFFF" : "#1A2229" },
-      text: { primary: isLight ? GREY[800] : "#FFFFFF", secondary: isLight ? GREY[600] : GREY[400] },
+      background: { default: isLight ? PAGE_LIGHT : PAGE_DARK, paper: isLight ? PAPER_LIGHT : PAPER_DARK },
+      text: { primary: isLight ? INK : "#FFFFFF", secondary: isLight ? INK_SECONDARY : GREY[400] },
       divider: alpha(GREY[500], isLight ? 0.2 : 0.24),
       action: { hover: alpha(GREY[500], 0.08), selected: alpha(ACCENT, isLight ? 0.08 : 0.16) },
     },
     shape: { borderRadius: 8 },
     typography: {
-      fontFamily: '"Public Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      fontFamily: '"Public Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
       button: { textTransform: "none", fontWeight: 600, fontSize: 14 },
       body1: { fontSize: 15, lineHeight: 1.6, letterSpacing: 0 },
       body2: { fontSize: 14, lineHeight: 1.55, letterSpacing: 0 },
@@ -38,8 +40,8 @@ export function createLiteTheme(mode: "light" | "dark") {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: isLight ? "#F4F7F9" : "#11171D",
-            color: isLight ? GREY[800] : "#FFFFFF",
+            backgroundColor: isLight ? PAGE_LIGHT : PAGE_DARK,
+            color: isLight ? INK : "#FFFFFF",
           },
         },
       },
@@ -52,8 +54,13 @@ export function createLiteTheme(mode: "light" | "dark") {
           contained: {
             backgroundColor: ACCENT,
             color: "#FFFFFF",
-            "&:hover": { backgroundColor: "#0C76C4" },
+            "&:hover": { backgroundColor: LITE_BLUE_HOVER },
           },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: { borderRadius: 8 },
         },
       },
       MuiCard: {
@@ -65,13 +72,21 @@ export function createLiteTheme(mode: "light" | "dark") {
         styleOverrides: {
           root: {
             borderRadius: 8,
-            backgroundColor: isLight ? GREY[200] : alpha("#FFFFFF", 0.06),
+            backgroundColor: isLight ? PAPER_LIGHT : PAPER_DARK,
             transition: "background-color 180ms ease, box-shadow 180ms ease",
             "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha(GREY[500], isLight ? 0.2 : 0.32) },
             "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: alpha(GREY[500], isLight ? 0.4 : 0.48) },
             "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: ACCENT, borderWidth: 1 },
             "&.Mui-focused": { boxShadow: `0 0 0 3px ${alpha(ACCENT, isLight ? 0.1 : 0.16)}` },
           },
+        },
+      },
+      MuiSelect: {
+        styleOverrides: {
+          select: {
+            backgroundColor: "transparent",
+          },
+          icon: { color: isLight ? INK_SECONDARY : GREY[400] },
         },
       },
       MuiMenu: {
@@ -86,10 +101,15 @@ export function createLiteTheme(mode: "light" | "dark") {
         },
       },
       MuiMenuItem: { styleOverrides: { root: { minHeight: 38, borderRadius: 8 } } },
+      MuiTabs: {
+        styleOverrides: {
+          indicator: { height: 3, borderRadius: "3px 3px 0 0", backgroundColor: ACCENT },
+        },
+      },
       MuiTab: {
         styleOverrides: {
           root: {
-            minHeight: 48,
+            minHeight: 44,
             paddingLeft: 4,
             paddingRight: 4,
             marginRight: 28,
@@ -97,11 +117,21 @@ export function createLiteTheme(mode: "light" | "dark") {
             fontSize: 14,
             fontWeight: 500,
             color: isLight ? GREY[600] : GREY[400],
-            "&.Mui-selected": { color: isLight ? GREY[800] : "#FFFFFF", fontWeight: 600 },
+            "&.Mui-selected": { color: isLight ? INK : "#FFFFFF", fontWeight: 600 },
           },
         },
       },
       MuiChip: { styleOverrides: { root: { borderRadius: 6, fontWeight: 500 } } },
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            backgroundColor: isLight ? INK : PAPER_DARK,
+            color: "#FFFFFF",
+            fontSize: 12,
+            borderRadius: 8,
+          },
+        },
+      },
       MuiSwitch: {
         styleOverrides: {
           root: { width: 38, height: 22, padding: 0 },

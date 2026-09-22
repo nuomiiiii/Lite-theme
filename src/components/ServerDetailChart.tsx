@@ -5,7 +5,7 @@ import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
 import { fetchResourceHistory, type ResourceHistoryPoint } from "@/lib/lite-api"
 import { clampPercent } from "@/lib/resource-history"
 import { METER_TONE_COLOR, cpuCoreCount, resourceUsageTone } from "@/lib/meter-tone"
-import { RESOURCE_COLORS, THEME } from "@/lib/theme-tokens"
+import { RESOURCE_COLORS } from "@/lib/theme-tokens"
 import { calcTrafficUsed, cn, formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { MenuItem, Select } from "@mui/material"
@@ -28,9 +28,9 @@ function formatChartTick(value: number, hours: number): string {
 
 function InfoCell({ label, value, accent, wrap }: { label: string; value: string; accent?: string; wrap?: boolean }) {
   return (
-    <div className="min-w-0 border-b border-[#E9EEF1] py-[13px] dark:border-[#26313A] sm:[&:nth-last-child(-n+2)]:border-b-0">
-      <p className="text-[11px] text-[#7A8792]">{label}</p>
-      <strong className={cn("mt-[7px] block text-base font-semibold tabular-nums text-[#202A33] dark:text-[#EDF3F6]", wrap ? "whitespace-normal break-all leading-snug" : "truncate", accent)}>{value}</strong>
+    <div className="min-w-0 border-b border-[var(--lite-line)] py-[13px] sm:[&:nth-last-child(-n+2)]:border-b-0">
+      <p className="text-[11px] text-[#919EAB]">{label}</p>
+      <strong className={cn("mt-[7px] block text-base font-semibold tabular-nums text-[#1C252E] dark:text-white", wrap ? "whitespace-normal break-all leading-snug" : "truncate", accent)}>{value}</strong>
     </div>
   )
 }
@@ -52,16 +52,17 @@ function ResourceRealtimeCard({
 }) {
   const barColor = METER_TONE_COLOR[resourceUsageTone(percent)]
   return (
-    <article data-testid={`resource-realtime-${dataKey}`} className="min-w-0 overflow-hidden rounded-lg border border-[#DDE4E9] bg-white px-[22px] py-5 shadow-[0_6px_18px_rgba(32,42,51,0.035)] dark:border-[#2D3943] dark:bg-[#1A2229]">
-      <p className="text-xs text-[#7A8792]">{label}</p>
-      <div className="mt-2.5 flex min-w-0 items-center gap-3.5">
-        <span className="flex size-[42px] shrink-0 items-center justify-center rounded-full bg-[#E8F4FC] text-[#0E86DD] dark:bg-[#12334A]">
-          <Icon className="size-[21px]" />
+    <article data-testid={`resource-realtime-${dataKey}`} className="min-w-0 overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)] px-[22px] py-5 max-[620px]:px-2.5 max-[620px]:py-3">
+      <p className="text-xs text-[#637381] max-[620px]:text-[11px]">{label}</p>
+      <div className="mt-2.5 flex min-w-0 items-center gap-3.5 max-[620px]:mt-3 max-[620px]:gap-1.5">
+        <span className="flex size-[42px] shrink-0 items-center justify-center rounded-full bg-[rgba(7,141,238,0.10)] text-[#078DEE] dark:bg-[#12334A] max-[620px]:size-4 max-[620px]:rounded-none max-[620px]:bg-transparent">
+          <Icon className="size-[21px] max-[620px]:size-[13px]" />
         </span>
-        <strong className="min-w-0 truncate text-[27px] font-semibold leading-none tabular-nums text-[#202A33] dark:text-[#EDF3F6]">{value}</strong>
-        <p className="ml-auto min-w-0 max-w-[58%] truncate text-right text-[10px] leading-none text-[#7A8792]">{detail}</p>
+        <strong className="min-w-0 truncate text-[27px] font-semibold leading-none tabular-nums text-[#1C252E] dark:text-white max-[620px]:text-[23px]">{value}</strong>
+        <p className="ml-auto min-w-0 max-w-[58%] truncate text-right text-[10px] leading-none text-[#919EAB] max-[620px]:hidden">{detail}</p>
       </div>
-      <div className="mt-[15px] h-1.5 overflow-hidden rounded-[3px] bg-[#E8EDF0] dark:bg-[#2B3740]">
+      <p className="mt-2 hidden truncate text-[8px] leading-3 text-[#919EAB] max-[620px]:block">{detail}</p>
+      <div className="mt-[15px] h-1 overflow-hidden rounded-md bg-[#F4F6F8] dark:bg-[#2A3A4D] max-[620px]:mt-3 max-[620px]:h-[3px]">
         <span className="block h-full rounded-[3px] transition-[width] duration-500" style={{ width: `${clampPercent(percent)}%`, background: barColor }} />
       </div>
     </article>
@@ -87,9 +88,9 @@ function ResourceHistoryCard({
   const chartConfig = { [dataKey]: { label, color } } satisfies ChartConfig
 
   return (
-    <section data-testid={`resource-history-${dataKey}`} className="min-w-0 overflow-hidden rounded-lg border border-[#DDE4E9] bg-white shadow-[0_6px_18px_rgba(32,42,51,0.035)] dark:border-[#2D3943] dark:bg-[#1A2229]">
-      <header className="flex min-h-[46px] items-center border-b border-[#E9EEF1] px-[18px] dark:border-[#26313A]">
-        <h3 className="m-0 flex items-center gap-[9px] text-[15px] font-semibold text-[#202A33] dark:text-[#EDF3F6]">
+    <section data-testid={`resource-history-${dataKey}`} className="min-w-0 overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)]">
+      <header className="flex min-h-[46px] items-center border-b border-[var(--lite-line)] px-[18px]">
+        <h3 className="m-0 flex items-center gap-[9px] text-[15px] font-semibold text-[#1C252E] dark:text-white">
           <span className="size-2 rounded-[2px]" style={{ backgroundColor: color }} />
           {label}
         </h3>
@@ -98,7 +99,7 @@ function ResourceHistoryCard({
         <div className="h-[278px] max-[620px]:h-[230px]">
           <ChartContainer config={chartConfig} className="h-full w-full">
             <ComposedChart data={chartData} margin={{ left: 4, right: 12, top: 10, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={THEME.lineSoft} />
+              <CartesianGrid vertical={false} stroke="rgba(145,158,171,0.20)" />
               <XAxis
                 dataKey="timeStamp"
                 tickLine={false}
@@ -118,7 +119,7 @@ function ResourceHistoryCard({
                     labelFormatter={(_, payload) => formatChartTick(Number(payload[0]?.payload?.timeStamp || 0), hours)}
                     formatter={(tooltipValue) => (
                       <div className="flex min-w-[110px] items-center justify-between gap-4">
-                        <span className="text-[#7A8792]">{label}</span>
+                        <span className="text-[#919EAB]">{label}</span>
                         <strong className="font-medium tabular-nums">{Number(tooltipValue).toFixed(1)}%</strong>
                       </div>
                     )}
@@ -131,8 +132,8 @@ function ResourceHistoryCard({
           </ChartContainer>
         </div>
         {!hasChartData && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-[#7A8792]">
-            {isLoading ? t("common.loading", { defaultValue: "加载中" }) : t("serverDetail.noHistory", { defaultValue: "暂无历史数据" })}
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-[#919EAB]">
+            {isLoading ? t("common.loading") : t("serverDetail.noHistory")}
           </div>
         )}
       </div>
@@ -152,17 +153,17 @@ function TrafficStatCard({
   tone: "green" | "blue"
 }) {
   const palette = tone === "green"
-    ? "bg-[#E8F8EF] text-[#22B573] dark:bg-[#143C2B]"
-    : "bg-[#E8F4FC] text-[#0E86DD] dark:bg-[#12334A]"
+    ? "bg-[rgba(34,197,94,0.10)] text-[#118D57] dark:bg-[#143C2B] dark:text-[#61C8A5]"
+    : "bg-[rgba(7,141,238,0.10)] text-[#078DEE] dark:bg-[#12334A]"
   return (
-    <article className="min-w-0 overflow-hidden rounded-lg border border-[#E9EEF1] bg-white px-3.5 py-3 shadow-[0_4px_12px_rgba(32,42,51,0.04)] dark:border-[#26313A] dark:bg-[#171E24]">
+    <article className="min-w-0 overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)] px-3.5 py-3">
       <div className="flex items-center gap-2">
         <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full", palette)}>
           <Icon className="size-3.5" />
         </span>
         <span className="truncate text-[11px] text-[#7A8792]">{label}</span>
       </div>
-      <strong className="mt-2 block truncate text-[18px] font-semibold tabular-nums text-[#202A33] dark:text-[#EDF3F6]">{value}</strong>
+      <strong className="mt-2 block truncate text-[18px] font-semibold tabular-nums text-[#1C252E] dark:text-white">{value}</strong>
     </article>
   )
 }
@@ -216,12 +217,12 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
     <div className="space-y-4">
       <section aria-labelledby="resource-usage-title">
         <div className="mb-3 mt-1">
-          <h2 id="resource-usage-title" className="m-0 text-[17px] font-semibold text-[#202A33] dark:text-[#EDF3F6]">
-            {t("serverDetail.usageStatistics", { defaultValue: "用量统计" })}
+          <h2 id="resource-usage-title" className="m-0 text-[17px] font-semibold text-[#1C252E] dark:text-white">
+            {t("serverDetail.usageStatistics")}
           </h2>
         </div>
-        <div className="grid gap-4 min-[861px]:grid-cols-3">
-          <ResourceRealtimeCard icon={Cpu} label="CPU" value={`${info.cpu.toFixed(1)}%`} detail={`${coreCount} ${t("serverDetail.cores", { defaultValue: "核心" })}`} percent={info.cpu} dataKey="cpu" />
+        <div className="grid grid-cols-3 gap-4 max-[620px]:gap-2">
+          <ResourceRealtimeCard icon={Cpu} label="CPU" value={`${info.cpu.toFixed(1)}%`} detail={`${coreCount} ${t("serverDetail.cores")}`} percent={info.cpu} dataKey="cpu" />
           <ResourceRealtimeCard
             icon={MemoryStick}
             label={t("serverDetail.mem")}
@@ -241,39 +242,39 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
         </div>
       </section>
 
-      <div className="grid items-stretch gap-4 min-[861px]:grid-cols-[.98fr_1.12fr]">
-        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-[#DDE4E9] bg-white shadow-[0_6px_18px_rgba(32,42,51,0.035)] dark:border-[#2D3943] dark:bg-[#1A2229]">
-          <header className="flex min-h-[54px] items-center border-b border-[#E9EEF1] px-[18px] dark:border-[#26313A]">
-            <h3 className="m-0 text-[15px] font-semibold">{t("serverDetail.trafficUsage", { defaultValue: "流量使用" })}</h3>
+      <div className="grid items-stretch gap-4 min-[1101px]:grid-cols-[.98fr_1.12fr]">
+        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)]">
+          <header className="flex min-h-[54px] items-center border-b border-[var(--lite-line)] px-[18px]">
+            <h3 className="m-0 text-[15px] font-semibold">{t("serverDetail.trafficUsage")}</h3>
           </header>
           <div className="flex flex-1 flex-col justify-between gap-3 px-[18px] pb-[18px] pt-[18px]">
             <div className="grid grid-cols-2 gap-3">
               <TrafficStatCard
                 icon={CircleCheck}
                 tone="green"
-                label={t("serverDetail.remaining", { defaultValue: "剩余" })}
+                label={t("serverDetail.remaining")}
                 value={trafficRemaining === null ? "--" : formatBytes(trafficRemaining)}
               />
               <TrafficStatCard
                 icon={BarChart3}
                 tone="blue"
-                label={t("serverDetail.used", { defaultValue: "已用" })}
+                label={t("serverDetail.used")}
                 value={formatBytes(trafficUsed)}
               />
               <TrafficStatCard
                 icon={ArrowUp}
                 tone="green"
-                label={t("serverDetail.outbound", { defaultValue: "出站" })}
+                label={t("serverDetail.outbound")}
                 value={formatBytes(info.net_out_transfer)}
               />
               <TrafficStatCard
                 icon={ArrowDown}
                 tone="blue"
-                label={t("serverDetail.inbound", { defaultValue: "入站" })}
+                label={t("serverDetail.inbound")}
                 value={formatBytes(info.net_in_transfer)}
               />
             </div>
-            <div data-testid="traffic-usage-progress" className="relative min-h-[72px] overflow-hidden rounded-lg border border-[#E9EEF1] bg-[#FBFCFD] dark:border-[#26313A] dark:bg-[#26313C]">
+            <div data-testid="traffic-usage-progress" className="relative min-h-[72px] overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[#F9FAFB] dark:bg-[#172230]">
               <span
                 aria-hidden="true"
                 className="absolute inset-y-0 left-0 bg-[linear-gradient(90deg,rgba(7,141,238,0.08)_0%,rgba(7,141,238,0.16)_100%)] transition-[width] duration-300"
@@ -281,14 +282,14 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
               />
               <div className="relative z-[1] flex min-h-[72px] items-center justify-between gap-4 px-4 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium leading-snug text-[#919EAB]">{t("serverDetail.trafficUsageRate", { defaultValue: "流量使用率" })}</p>
+                  <p className="text-xs font-medium leading-snug text-[#919EAB]">{t("serverDetail.trafficUsageRate")}</p>
                   <p className="mt-1 text-xs leading-snug text-[#637381]">
                     {info.traffic_limit > 0
                       ? `${formatBytes(trafficUsed)} / ${formatBytes(info.traffic_limit)}`
-                      : t("serverDetail.unlimited", { defaultValue: "未设置限额" })}
+                      : t("serverDetail.unlimited")}
                   </p>
                 </div>
-                <strong className="shrink-0 text-lg font-bold tabular-nums text-[#0E86DD]">
+                <strong className="shrink-0 text-lg font-bold tabular-nums text-[#078DEE]">
                   {info.traffic_limit > 0 ? `${trafficPercent.toFixed(2)}%` : "--"}
                 </strong>
               </div>
@@ -296,16 +297,16 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
           </div>
         </section>
 
-        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-[#DDE4E9] bg-white shadow-[0_6px_18px_rgba(32,42,51,0.035)] dark:border-[#2D3943] dark:bg-[#1A2229]">
-          <header className="flex min-h-[54px] items-center border-b border-[#E9EEF1] px-[18px] dark:border-[#26313A]">
-            <h3 className="m-0 text-[15px] font-semibold">{t("serverDetail.runtimeInfo", { defaultValue: "运行信息" })}</h3>
+        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)]">
+          <header className="flex min-h-[54px] items-center border-b border-[var(--lite-line)] px-[18px]">
+            <h3 className="m-0 text-[15px] font-semibold">{t("serverDetail.runtimeInfo")}</h3>
           </header>
           <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-x-6 px-[18px] pb-[18px] pt-[18px]">
             <InfoCell label={t("serverDetail.uptime")} value={uptime} />
             <InfoCell label={t("serverDetailChart.process")} value={String(info.process)} />
             <InfoCell label="TCP" value={String(info.tcp)} />
             <InfoCell label="UDP" value={String(info.udp)} />
-            <InfoCell label={t("serverDetail.load", { defaultValue: "系统负载" })} value={`${info.load_1} / ${info.load_5} / ${info.load_15}`} />
+            <InfoCell label={t("serverDetail.load")} value={`${info.load_1} / ${info.load_5} / ${info.load_15}`} />
             <InfoCell label={t("serverDetail.lastActive")} value={info.last_active_time_string || "--"} wrap />
           </div>
         </section>
@@ -313,12 +314,12 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
 
       <section aria-labelledby="resource-history-title">
         <header className="mb-3.5 flex min-h-8 items-center justify-between gap-4">
-          <h2 id="resource-history-title" className="m-0 text-[17px] font-semibold text-[#202A33] dark:text-[#EDF3F6]">{t("serverDetail.resourceTrend", { defaultValue: "资源趋势" })}</h2>
+          <h2 id="resource-history-title" className="m-0 text-[17px] font-semibold text-[#1C252E] dark:text-white">{t("serverDetail.resourceTrend")}</h2>
           <Select
             size="small"
             value={String(hours)}
             onChange={(event) => setHours(Number(event.target.value))}
-            aria-label={t("monitor.timeRange", { defaultValue: "时间范围" })}
+            aria-label={t("monitor.timeRange")}
             sx={{ width: 78, height: 32, fontSize: 12, borderRadius: "6px" }}
           >
             {HISTORY_TIME_OPTIONS.map((option) => (
@@ -326,7 +327,7 @@ export default function ServerDetailChart({ server_id, show = true }: { server_i
             ))}
           </Select>
         </header>
-        <div className="grid grid-cols-1 gap-4 min-[861px]:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 min-[1101px]:grid-cols-3">
           <ResourceHistoryCard label="CPU" dataKey="cpu" hours={hours} chartData={chartData} isLoading={isPending} />
           <ResourceHistoryCard label={t("serverDetail.mem")} dataKey="memory" hours={hours} chartData={chartData} isLoading={isPending} />
           <ResourceHistoryCard label={t("serverDetail.disk")} dataKey="storage" hours={hours} chartData={chartData} isLoading={isPending} />

@@ -35,7 +35,6 @@ const MainApp: React.FC = () => {
     }
   }, [settingData?.data?.config?.custom_code])
 
-  // 检测是否强制指定了主题颜色
   const forceTheme =
     // @ts-expect-error ForceTheme is a global variable
     (window.ForceTheme as string) !== "" ? window.ForceTheme : undefined
@@ -82,7 +81,8 @@ const MainApp: React.FC = () => {
         })}
       >
         <Header />
-        <main className="lite-page-shell z-20 flex flex-1 flex-col pt-5 pb-[max(0.5rem,var(--safe-area-bottom))] md:pt-6 max-[620px]:pt-3">
+        <div className="h-[calc(var(--lite-header-height)+var(--safe-area-top))] shrink-0" aria-hidden="true" />
+        <main className="lite-page-shell z-20 flex flex-1 flex-col pt-6 pb-[max(0.5rem,var(--safe-area-bottom))] max-[967px]:pt-[15px]">
           {!settingData ? (
             <Loader visible />
           ) : (

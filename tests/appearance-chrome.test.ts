@@ -10,7 +10,7 @@ import {
 
 test("public appearance chrome writes hex theme-color by replacing the tag", () => {
   assert.equal(APPEARANCE_CHROME_LIGHT, "#FFFFFF")
-  assert.equal(APPEARANCE_CHROME_DARK, "#161C24")
+  assert.equal(APPEARANCE_CHROME_DARK, "#111B28")
   assert.equal(appearanceChromeColor(false), APPEARANCE_CHROME_LIGHT)
   assert.equal(appearanceChromeColor(true), APPEARANCE_CHROME_DARK)
 
@@ -20,7 +20,7 @@ test("public appearance chrome writes hex theme-color by replacing the tag", () 
   const chrome = readFileSync(new URL("../src/lib/appearance-chrome.ts", import.meta.url), "utf8")
 
   assert.match(html, /theme-color" content="#FFFFFF"/)
-  assert.match(html, /isDark \? "#161C24" : "#FFFFFF"/)
+  assert.match(html, /isDark \? "#111B28" : "#FFFFFF"/)
   assert.match(html, /querySelector\('meta\[name="theme-color"\]'\)\?\.setAttribute\("content", themeColor\)/)
   assert.doesNotMatch(html, /querySelectorAll\('meta\[name="theme-color"\]'\)\.forEach/)
   assert.doesNotMatch(html, /theme-color" content="hsl/)

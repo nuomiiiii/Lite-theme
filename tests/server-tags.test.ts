@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { parseCardTags, parseServerTags } from "../src/lib/server-tags.ts"
+import { parseCardTags, parseServerTags, SERVER_TAG_TONE } from "../src/lib/server-tags.ts"
 import { selectedTaskSampleCount } from "../src/lib/probe-samples.ts"
 import { probeHistoryMaxPoints } from "../src/lib/history-range.ts"
 import { formatCompactTime } from "../src/lib/format.ts"
@@ -18,6 +18,12 @@ test("tags without a color rotate through the same admin palette", () => {
   const tags = parseServerTags("alpha;beta")
   assert.equal(tags[0].color, "ruby")
   assert.equal(tags[1].color, "gray")
+})
+
+test("gray tags stay darker than the card footer so they read as chips", () => {
+  assert.equal(SERVER_TAG_TONE.gray.bg, "#E0E1E6")
+  assert.notEqual(SERVER_TAG_TONE.gray.bg, "#F9FAFB")
+  assert.notEqual(SERVER_TAG_TONE.gray.bg, "#F0F0F3")
 })
 
 test("falls back to plan extra only when server tags are empty", () => {

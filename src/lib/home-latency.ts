@@ -49,6 +49,36 @@ export const HOME_LATENCY_CARD_LIMIT = 4
 export const HOME_LATENCY_GREEN_MAX_MS = 80
 export const HOME_LATENCY_AMBER_MAX_MS = 180
 
+export const HOME_TWO_COL_MIN = 968
+export const HOME_THREE_COL_MIN = 1440
+export const HOME_FOUR_COL_MIN = 1920
+
+export function homeCardColumnCount(width: number): number {
+  if (width >= HOME_FOUR_COL_MIN) return 4
+  if (width >= HOME_THREE_COL_MIN) return 3
+  if (width >= HOME_TWO_COL_MIN) return 2
+  return 1
+}
+
+export function homeProbeRowCount(taskCount: number): number {
+  const count = Math.min(HOME_LATENCY_CARD_LIMIT, Math.max(0, taskCount))
+  if (count === 0) return 0
+  return Math.ceil(count / 2)
+}
+
+export function homeProbeShouldStack(taskCounts: number[], index: number, columns: number): boolean {
+  if (columns < 2 || index < 0 || index >= taskCounts.length) return false
+  const count = Math.min(HOME_LATENCY_CARD_LIMIT, Math.max(0, taskCounts[index] ?? 0))
+  if (count !== 2) return false
+  const rowStart = Math.floor(index / columns) * columns
+  const rowEnd = Math.min(taskCounts.length, rowStart + columns)
+  let maxRows = 0
+  for (let i = rowStart; i < rowEnd; i++) {
+    maxRows = Math.max(maxRows, homeProbeRowCount(taskCounts[i] ?? 0))
+  }
+  return maxRows >= 2
+}
+
 export type LatencyBarTone = "green" | "amber" | "coral" | "empty"
 
 export function latencyBarTone(latency: number | null): LatencyBarTone {

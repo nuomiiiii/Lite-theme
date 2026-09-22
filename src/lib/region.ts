@@ -35,6 +35,15 @@ export function continentLabel(countryCode: string): RegionKey {
   return "other"
 }
 
+export function uniqueCountryCount(servers: Array<{ country_code?: string }>): number {
+  const codes = new Set<string>()
+  for (const server of servers) {
+    const code = (server.country_code || "").trim().toUpperCase()
+    if (code) codes.add(code)
+  }
+  return codes.size
+}
+
 export function regionStats(servers: Array<{ country_code?: string; online: boolean }>): RegionStat[] {
   const buckets = new Map<string, { online: number; total: number }>()
   for (const server of servers) {
@@ -48,10 +57,4 @@ export function regionStats(servers: Array<{ country_code?: string; online: bool
   return order
     .filter((label) => buckets.has(label))
     .map((label) => ({ label, ...buckets.get(label)! }))
-}
-
-export function regionTone(stat: RegionStat): "green" | "amber" | "coral" {
-  if (stat.total === 0 || stat.online === stat.total) return "green"
-  if (stat.online === 0) return "coral"
-  return "amber"
 }

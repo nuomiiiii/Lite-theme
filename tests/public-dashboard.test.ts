@@ -60,22 +60,47 @@ test("hides homepage sort, version and Ctrl+K", () => {
 })
 
 test("uses brand blue and nested group radii", () => {
-  assert.match(theme, /#0E86DD/)
+  const brand = readFileSync(new URL("../src/theme/brand.ts", import.meta.url), "utf8")
+  const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
+  assert.match(brand, /#078DEE/)
+  assert.match(brand, /PAGE_LIGHT = "#F4F6F8"/)
+  assert.match(brand, /PAPER_LIGHT = "#FFFFFF"/)
+  assert.match(css, /background-color: #f4f6f8/)
+  assert.match(css, /--lite-paper: #ffffff/)
+  assert.match(theme, /LITE_BLUE/)
+  assert.match(theme, /paper: isLight \? PAPER_LIGHT : PAPER_DARK/)
   assert.match(groupSwitch, /const GROUP_RADIUS_PX = 8/)
   assert.match(groupSwitch, /const GROUP_INNER_RADIUS_PX = GROUP_RADIUS_PX - GROUP_PADDING_PX/)
 })
 
-test("homepage uses the charcoal two-panel status banner", () => {
+test("homepage uses a card-style status overview with a light health gradient", () => {
   const overview = readFileSync(new URL("../src/components/ServerOverview.tsx", import.meta.url), "utf8")
-  assert.match(overview, /SYSTEM HEALTH/)
-  assert.match(overview, /serverOverview.globalStatus/)
-  assert.match(overview, /LIVE TRAFFIC/)
-  assert.match(overview, /#202A33/)
+  assert.match(overview, /serverOverview.runningStatus/)
+  assert.match(overview, /serverOverview.liveTraffic/)
+  assert.match(overview, /rgba\(7,141,238,\.10\)/)
+  assert.match(overview, /max-\[967px\]:block/)
+  assert.match(overview, /setStatus\("online"\)/)
+  assert.match(overview, /setStatus\("offline"\)/)
+  assert.match(overview, /setStatus\("all"\)/)
+  assert.doesNotMatch(overview, /SYSTEM HEALTH/)
+  assert.doesNotMatch(overview, /conic-gradient/)
+  assert.match(overview, /minmax\(280px,400px\)_minmax\(220px,320px\)/)
+  assert.match(overview, /healthStatusDots\(servers\)/)
+  assert.match(overview, /OverviewPane/)
+  assert.match(overview, /flex h-5 w-full shrink-0 items-center/)
+  assert.match(overview, /flex h-4 w-full shrink-0 items-center/)
+  assert.doesNotMatch(overview, /content-center/)
+  assert.doesNotMatch(overview, /flex-col justify-between gap-3/)
+  assert.match(overview, /axisSpeedTicks/)
+  assert.match(overview, /trafficUnit/)
+  assert.match(overview, /if \(compact\)/)
+  assert.doesNotMatch(overview, /slice\(0, 32\)/)
 })
 
 test("homepage latency probes keep latency and packet loss in one compact metric group", () => {
   const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
   const card = readFileSync(new URL("../src/components/ServerCard.tsx", import.meta.url), "utf8")
+  const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
   const planInfo = readFileSync(new URL("../src/components/PlanInfo.tsx", import.meta.url), "utf8")
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
   assert.match(latency, /formatProbePacketLoss/)
@@ -86,7 +111,7 @@ test("homepage latency probes keep latency and packet loss in one compact metric
   assert.match(latency, /flex shrink-0 items-center gap-2/)
   assert.match(latency, /h-2\.5 w-px/)
   assert.match(latency, /leading-none tabular-nums/)
-  assert.match(latency, /max-\[620px\]:hidden/)
+  assert.match(latency, /max-\[967px\]:hidden/)
   assert.match(latency, /mt-1\.5 h-\[5px\] overflow-hidden/)
   assert.doesNotMatch(latency, /flex-col items-end/)
   assert.doesNotMatch(latency, /packetLossTone/)
@@ -98,6 +123,8 @@ test("homepage latency probes keep latency and packet loss in one compact metric
   assert.match(latency, /slice\(0, HOME_LATENCY_CARD_LIMIT\)/)
   assert.match(latency, /grid-cols-2/)
   assert.match(latency, /col-span-2/)
+  assert.match(latency, /stackProbes/)
+  assert.match(latency, /data-probe-layout/)
   assert.match(latency, /latencyBarTone/)
   assert.match(latency, /packetFillTone/)
   assert.match(card, /resourceUsageTone/)
@@ -106,6 +133,16 @@ test("homepage latency probes keep latency and packet loss in one compact metric
   assert.doesNotMatch(planInfo, /country_code/)
   assert.doesNotMatch(planInfo, /networkRoute/)
   assert.match(card, /flex flex-wrap items-center justify-between gap-x-3/)
+  assert.match(card, /lite-server-card/)
+  assert.match(card, /border-b border-\[var\(--lite-line\)\]/)
+  assert.match(card, /border-t border-\[var\(--lite-line\)\] pt-3\.5/)
+  assert.match(css, /html\.dark \.lite-server-card:hover/)
+  assert.match(css, /0 0 56px rgba\(7, 141, 238, 0\.12\)/)
+  assert.match(css, /0 0 64px rgba\(255, 255, 255, 0\.1\)/)
+  assert.doesNotMatch(css, /\.lite-server-card::before/)
+  assert.doesNotMatch(css, /0 0 0 1px rgba\(7, 141, 238/)
+  assert.doesNotMatch(css, /0 0 16px 2px/)
+  assert.doesNotMatch(css, /0 0 72px 18px/)
   assert.doesNotMatch(planInfo, /trafficVol/)
   assert.doesNotMatch(planInfo, /bandwidth/)
   assert.match(planInfo, /extraList/)
@@ -117,10 +154,15 @@ test("header and page body share the same content shell", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
   const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
   assert.match(css, /lite-page-shell/)
-  assert.match(css, /max-w-\[1520px\]/)
+  assert.match(css, /max-w-\[2240px\]/)
+  assert.match(css, /--lite-header-height: 64px/)
+  assert.match(css, /scrollbar-gutter: stable/)
   assert.match(header, /lite-page-shell/)
+  assert.match(header, /fixed inset-x-0 top-0/)
   assert.match(app, /lite-page-shell/)
+  assert.match(app, /h-\[calc\(var\(--lite-header-height\)\+var\(--safe-area-top\)\)\]/)
   assert.doesNotMatch(header, /max-w-\[1420px\]/)
+  assert.doesNotMatch(header, /liveConnection/)
 })
 
 test("restores homepage scroll after leaving a server detail page", () => {
@@ -157,7 +199,10 @@ test("public PWA uses cover viewport and root safe-area insets", () => {
 test("applies homepage sort from theme settings", () => {
   assert.match(themeHomeSort, /HomeSortType/)
   assert.match(themeHomeSort, /HomeSortOrder/)
-  assert.match(serverPage, /inset-y-0 right-3 flex items-center/)
+  assert.match(serverPage, /aria-label=\{t\("home.sort"\)\}/)
+  assert.match(serverPage, /flex min-w-0 items-center gap-3 max-\[967px\]:contents/)
+  assert.match(serverPage, /flex items-end gap-2.5/)
+  assert.match(serverPage, /text-\[11px\] leading-none text-\[#919EAB\]/)
   assert.doesNotMatch(serverPage, /top-1\.5/)
 })
 
@@ -170,7 +215,8 @@ test("keeps public dashboard polling cheap", () => {
   assert.match(liteApi, /public:getPingMetricStats/)
   assert.match(liteApi, /historyMaxPoints/)
   assert.match(serverPage, /refetchInterval: 5_000/)
-  assert.doesNotMatch(serverPage, /max-\[620px\]:flex-col/)
+  assert.match(serverPage, /homeProbeShouldStack/)
+  assert.match(serverPage, /stackLatencyProbes/)
 })
 
 test("drops unused public-dashboard leftovers", () => {
@@ -186,7 +232,14 @@ test("drops unused public-dashboard leftovers", () => {
   assert.doesNotMatch(chart, /ChartLegend/)
   assert.doesNotMatch(sortContext, /createContext|SortContext/)
   assert.doesNotMatch(formatInfo, /boot_time_string|gpu_info/)
+  assert.doesNotMatch(formatInfo, /export const fetcher|liteFetcher|formatRelativeTime/)
+  assert.doesNotMatch(sortContext, /up total|down total/)
+  assert.doesNotMatch(readFileSync(new URL("../src/lib/sparkline.ts", import.meta.url), "utf8"), /sparklinePoints|padLeft/)
+  assert.doesNotMatch(readFileSync(new URL("../src/lib/region.ts", import.meta.url), "utf8"), /regionTone/)
+  assert.doesNotMatch(readFileSync(new URL("../src/lib/home-latency.ts", import.meta.url), "utf8"), /HOME_PAGE_MAX_WIDTH|HOME_CARD_GAP|HOME_CARD_MIN_WIDTH/)
+  assert.doesNotMatch(themeHomeSort, /THEME_HOME_SORT_TYPES/)
   assert.equal(existsSync(new URL("../src/lib/theme-colors.ts", import.meta.url)), false)
+  assert.equal(existsSync(new URL("../src/components/RemainPercentBar.tsx", import.meta.url)), false)
 })
 
 test("shows a loader instead of a blank page while public settings load", () => {
@@ -201,7 +254,7 @@ test("shows a loader instead of a blank page while public settings load", () => 
   assert.doesNotMatch(app, /fullscreen/)
   assert.match(loader, /CircularProgress/)
   assert.match(loader, /size=\{44\}/)
-  assert.match(loader, /#0E86DD/)
+  assert.match(loader, /#078DEE/)
   assert.match(loader, /common\.loading/)
   assert.match(loader, /flex-1/)
   assert.doesNotMatch(loader, /fullscreen/)
@@ -236,24 +289,40 @@ test("prefetches probe charts from homepage hover, press and visibility", () => 
 })
 
 test("public locales share the visitor-facing copy keys", () => {
-  const required = [
-    "serverOverview.globalStatus",
+  function flatten(obj: Record<string, unknown>, prefix = ""): string[] {
+    return Object.entries(obj).flatMap(([key, value]) => {
+      const path = prefix ? `${prefix}.${key}` : key
+      return value && typeof value === "object" && !Array.isArray(value)
+        ? flatten(value as Record<string, unknown>, path)
+        : [path]
+    })
+  }
+  const locales = ["zh-CN", "zh-TW", "en", "ja"]
+  const trees = locales.map((locale) => JSON.parse(readFileSync(new URL(`../src/locales/${locale}/translation.json`, import.meta.url), "utf8")))
+  const keys = trees.map((tree) => flatten(tree).sort())
+  for (let i = 1; i < keys.length; i++) {
+    assert.deepEqual(keys[i], keys[0], `${locales[i]} keys differ from zh-CN`)
+  }
+  for (const required of [
     "home.allServers",
     "home.serverCount",
     "serverCard.cumulative",
     "serverDetail.backToList",
+    "serverOverview.runningStatus",
     "monitor.overview",
     "region.asia",
     "traffic.resetToday",
     "privateSite.title",
     "common.loading",
-  ]
-  const locales = ["zh-CN", "zh-TW", "en", "ja"]
-  for (const locale of locales) {
-    const json = JSON.parse(readFileSync(new URL(`../src/locales/${locale}/translation.json`, import.meta.url), "utf8"))
-    for (const key of required) {
-      const value = key.split(".").reduce((node: unknown, part) => (node as Record<string, unknown>)?.[part], json)
-      assert.equal(typeof value, "string", `${locale} missing ${key}`)
-    }
+  ]) {
+    const value = required.split(".").reduce((node: unknown, part) => (node as Record<string, unknown>)?.[part], trees[0])
+    assert.equal(typeof value, "string", `zh-CN missing ${required}`)
   }
+  assert.equal(keys[0].includes("map.Distributions"), false)
+  assert.equal(keys[0].includes("TypeCommand"), false)
+  assert.equal(keys[0].includes("serviceTracker.noService"), false)
+  assert.equal(trees[0].home.liveUpdate, "数据每5S更新")
+  assert.match(trees[1].home.liveUpdate, /5S/)
+  assert.match(trees[2].home.liveUpdate, /5s/)
+  assert.match(trees[3].home.liveUpdate, /5秒/)
 })

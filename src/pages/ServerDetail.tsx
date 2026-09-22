@@ -4,13 +4,13 @@ import ServerDetailOverview from "@/components/ServerDetailOverview"
 import TabSwitch from "@/components/TabSwitch"
 import { isNetworkView, parsePingTaskId, resolveServerRouteId } from "@/lib/server-route"
 import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useState } from "react"
 import { Navigate, useParams, useSearchParams } from "react-router-dom"
 
 const tabs = ["Detail", "Network"]
 
 export default function ServerDetail() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" })
   }, [])
 
@@ -28,7 +28,7 @@ export default function ServerDetail() {
   if (serverId === null) return <Navigate to="/404" replace />
 
   return (
-    <div className="mx-auto flex w-full flex-col gap-3 px-0 server-info">
+    <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-0 server-info">
       <ServerDetailOverview server_id={serverId} />
       <TabSwitch tabs={tabs} currentTab={currentTab} setCurrentTab={setCurrentTab} />
       <div className="relative w-full overflow-hidden">

@@ -5,12 +5,13 @@ import { Loader } from "@/components/loading/Loader"
 import type { SortType } from "@/context/sort-context"
 import { useStatus } from "@/hooks/use-status"
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
-import { readHomeLatencyCache, writeHomeLatencyCache } from "@/lib/home-latency"
+import { HOME_LATENCY_CARD_LIMIT, homeCardColumnCount, homeProbeShouldStack, readHomeLatencyCache, writeHomeLatencyCache } from "@/lib/home-latency"
 import { restoreHomeScroll, saveHomeScroll } from "@/lib/home-scroll"
 import { fetchHomeLatency, fetchServerGroup } from "@/lib/lite-api"
 import { readThemeHomeSort } from "@/lib/theme-home-sort"
-import { formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
+import { cn, formatLiteInfo, parseLiteWebsocketMessage } from "@/lib/utils"
 import { ServerGroup } from "@/types/lite-api"
+import { MenuItem, Select } from "@mui/material"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useLayoutEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -31,10 +32,34 @@ const SORT_OPTION_KEYS: Array<{ value: SortType; labelKey: string }> = [
   { value: "down", labelKey: "home.sortDownload" },
 ]
 
+function useHomeCardColumns() {
+  const [columns, setColumns] = useState(() => (typeof window === "undefined" ? 1 : homeCardColumnCount(window.innerWidth)))
+  useLayoutEffect(() => {
+    const update = () => setColumns(homeCardColumnCount(window.innerWidth))
+    update()
+    window.addEventListener("resize", update)
+    return () => window.removeEventListener("resize", update)
+  }, [])
+  return columns
+}
+
+function formatClock(value: number) {
+  const date = new Date(value > 1e12 ? value : value * 1000)
+  if (!Number.isFinite(date.getTime())) return ""
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  const seconds = String(date.getSeconds()).padStart(2, "0")
+  return `${year}.${month}.${day} · ${hours}:${minutes}:${seconds}`
+}
+
 export default function Servers() {
   const { t } = useTranslation()
   const { status } = useStatus()
   const { lastMessage, connected } = useWebSocketContext()
+  const cardColumns = useHomeCardColumns()
   const [currentGroup, setCurrentGroup] = useState("All")
   const themeSort = readThemeHomeSort()
   const [sortType, setSortType] = useState<SortType>(themeSort.sortType)
@@ -162,9 +187,22 @@ export default function Servers() {
     }
     return sortOrder === "asc" ? comparison : -comparison
   })
+  const probeCounts = filteredServers.map((server) => Math.min(HOME_LATENCY_CARD_LIMIT, (server.uuid ? homeLatency[server.uuid] || [] : []).length))
+  const stackLatencyProbes = probeCounts.map((_, index) => homeProbeShouldStack(probeCounts, index, cardColumns))
 
   return (
     <div className="mx-auto w-full">
+      <div className="mb-6 flex items-end justify-between gap-3 max-[967px]:mb-4">
+        <div>
+          <span className="text-[9px] font-medium tracking-[1.6px] text-[#919EAB]">{t("home.eyebrow")}</span>
+          <h1 className="mt-1.5 text-[27px] font-semibold leading-tight tracking-tight text-[#1C252E] dark:text-white max-[967px]:text-[23px]">{t("home.title")}</h1>
+        </div>
+        <span className="flex items-center gap-1.5 pb-1 text-[11px] text-[#637381] max-[967px]:text-[9px]">
+          <i className={`size-1.5 rounded-full ${connected ? "bg-[#22C55E]" : "bg-[#FF5630]"}`} />
+          {connected ? t("home.liveUpdate") : t("serverOverview.disconnected")}
+          {websocketData.now ? <span className="ml-4 text-[#919EAB] max-[1439px]:hidden">{formatClock(websocketData.now)}</span> : null}
+        </span>
+      </div>
       <ServerOverview
         total={totalServers}
         online={onlineServers}
@@ -176,35 +214,42 @@ export default function Servers() {
         now={websocketData.now}
         servers={regionServers}
       />
-      <section className="mb-4 mt-8 flex items-end justify-between gap-3 max-[620px]:mt-6" aria-label={t("home.filter")}>
-        <div className="min-w-0 flex-1">
-          <div className="mb-3 flex items-center gap-2.5 max-[620px]:mb-2.5">
-            <h2 className="m-0 text-[22px] font-semibold leading-none text-[#202A33] dark:text-[#EDF3F6] max-[620px]:text-xl">{t("home.allServers")}</h2>
-            <span className="text-xs text-[#7A8792]">{t("home.serverCount", { count: filteredServers.length })}</span>
+      <section className="mb-4 mt-6 flex items-center justify-between gap-3 max-[967px]:mt-4 max-[967px]:grid max-[967px]:grid-cols-[minmax(0,1fr)_auto] max-[967px]:items-center max-[967px]:gap-x-2.5 max-[967px]:gap-y-2.5" aria-label={t("home.filter")}>
+        <div className="flex min-w-0 items-center gap-3 max-[967px]:contents">
+          <div className="flex items-end gap-2.5 max-[967px]:col-start-1 max-[967px]:row-start-1">
+            <h2 className="m-0 text-lg font-semibold leading-none text-[#1C252E] dark:text-white">{t("home.allServers")}</h2>
+            <span className="text-[11px] leading-none text-[#919EAB]">{t("home.serverCount", { count: filteredServers.length })}</span>
           </div>
-          <GroupSwitch tabs={groupTabs} currentTab={currentGroup} setCurrentTab={handleGroupChange} />
+          <div className="min-w-0 max-[967px]:col-span-2 max-[967px]:row-start-2">
+            <GroupSwitch tabs={groupTabs} currentTab={currentGroup} setCurrentTab={handleGroupChange} />
+          </div>
         </div>
-        <label className="relative inline-flex h-9 shrink-0 items-center">
-          <select
-            aria-label={t("home.sort")}
-            value={sortType}
-            onChange={(event) => setSortType(event.target.value as SortType)}
-            className="h-9 appearance-none rounded-md border border-[#DDE4E9] bg-white py-0 pl-3.5 pr-9 text-sm leading-9 text-[#566571] dark:border-[#2D3943] dark:bg-[#1A2229] dark:text-[#B2C0C9]"
-          >
-            {SORT_OPTION_KEYS.map((option) => (
-              <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm leading-none text-[#7A8792]" aria-hidden="true">⌄</span>
-        </label>
+        <Select
+          size="small"
+          value={sortType}
+          onChange={(event) => setSortType(event.target.value as SortType)}
+          aria-label={t("home.sort")}
+          sx={{ minWidth: 112, height: 32, fontSize: 11, flexShrink: 0, ".MuiSelect-select": { py: 0.75 } }}
+        >
+          {SORT_OPTION_KEYS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>{t(option.labelKey)}</MenuItem>
+          ))}
+        </Select>
       </section>
-      <section className="grid grid-cols-1 items-start gap-3.5 min-[1121px]:grid-cols-2" aria-label="Server list">
-        {filteredServers.map((serverInfo) => (
+      <section
+        className={cn(
+          "grid items-stretch gap-4",
+          cardColumns === 4 ? "grid-cols-4" : cardColumns === 3 ? "grid-cols-3" : cardColumns === 2 ? "grid-cols-2" : "grid-cols-1",
+        )}
+        aria-label="Server list"
+      >
+        {filteredServers.map((serverInfo, index) => (
           <ServerCard
             now={websocketData.now}
             key={serverInfo.id}
             serverInfo={serverInfo}
             latencySummaries={serverInfo.uuid ? homeLatency[serverInfo.uuid] || [] : []}
+            stackLatencyProbes={stackLatencyProbes[index]}
           />
         ))}
       </section>

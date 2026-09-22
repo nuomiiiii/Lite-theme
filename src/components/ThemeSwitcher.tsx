@@ -45,11 +45,11 @@ export function ModeToggle() {
 
   return (
     <>
-      <Tooltip title={t("changeTheme", { defaultValue: "切换外观" })}>
+      <Tooltip title={t("changeTheme")}>
         <IconButton
           size="small"
           onClick={openMenu}
-          aria-label={t("changeTheme", { defaultValue: "切换外观" })}
+          aria-label={t("changeTheme")}
           sx={{ width: 36, height: 36, borderRadius: "6px", color: "text.secondary" }}
         >
           <Sun className="size-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

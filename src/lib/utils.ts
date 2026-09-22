@@ -208,57 +208,8 @@ export function getDaysBetweenDates(date1: string, date2: string): number {
   return Math.round((firstDate.getTime() - secondDate.getTime()) / oneDay)
 }
 
-export const fetcher = (url: string) =>
-  fetch(url)
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(res.statusText)
-      }
-      return res.json()
-    })
-    .then((data) => data.data)
-    .catch((err) => {
-      console.error(err)
-      throw err
-    })
-
-export const liteFetcher = async (url: string) => {
-  const res = await fetch(url)
-
-  if (!res.ok) {
-    const error = new Error("An error occurred while fetching the data.")
-    // @ts-expect-error - res.json() returns a Promise<any>
-    error.info = await res.json()
-    // @ts-expect-error - res.status is a number
-    error.status = res.status
-    throw error
-  }
-
-  return res.json()
-}
-
 export function parseISOTimestamp(isoString: string): number {
   return new Date(isoString).getTime()
-}
-
-export function formatRelativeTime(timestamp: number): string {
-  const now = Date.now()
-  const diff = now - timestamp
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-
-  if (hours > 24) {
-    const days = Math.floor(hours / 24)
-    return `${days}d`
-  } else if (hours > 0) {
-    return `${hours}h`
-  } else if (minutes > 0) {
-    return `${minutes}m`
-  } else if (seconds >= 0) {
-    return `${seconds}s`
-  }
-  return "0s"
 }
 
 export function formatTime(timestamp: number): string {

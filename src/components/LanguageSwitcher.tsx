@@ -27,11 +27,11 @@ export function LanguageSwitcher() {
 
   return (
     <>
-      <Tooltip title={t("changeLanguage", { defaultValue: "切换语言" })}>
+      <Tooltip title={t("changeLanguage")}>
         <IconButton
           size="small"
           onClick={openMenu}
-          aria-label={t("changeLanguage", { defaultValue: "切换语言" })}
+          aria-label={t("changeLanguage")}
           sx={{ width: 36, height: 36, borderRadius: "6px", color: "text.secondary" }}
         >
           <Languages className="size-[18px]" />

@@ -5,6 +5,9 @@ import test from "node:test"
 import {
   HOME_LATENCY_CARD_LIMIT,
   formatProbePacketLoss,
+  homeCardColumnCount,
+  homeProbeRowCount,
+  homeProbeShouldStack,
   hourPacketFillPercent,
   latencyBarTone,
   mapPingStatsToHomeLatency,
@@ -164,5 +167,45 @@ test("homepage probes use two columns and stretch the last odd task on every vie
   const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
   assert.match(latency, /grid-cols-2/)
   assert.match(latency, /\[&>\.probe:nth-child\(odd\):last-child\]:col-span-2/)
+  assert.match(latency, /stackProbes \? "grid-cols-1"/)
   assert.doesNotMatch(latency, /homeLatencyGridTemplate|home-latency-cols/)
+})
+
+test("homepage card columns follow the server grid breakpoints", () => {
+  assert.equal(homeCardColumnCount(967), 1)
+  assert.equal(homeCardColumnCount(968), 2)
+  assert.equal(homeCardColumnCount(1439), 2)
+  assert.equal(homeCardColumnCount(1440), 3)
+  assert.equal(homeCardColumnCount(1919), 3)
+  assert.equal(homeCardColumnCount(1920), 4)
+})
+
+test("two-task probes stack to one per row when a neighbor in the same row already has two probe rows", () => {
+  assert.equal(homeProbeRowCount(0), 0)
+  assert.equal(homeProbeRowCount(1), 1)
+  assert.equal(homeProbeRowCount(2), 1)
+  assert.equal(homeProbeRowCount(3), 2)
+  assert.equal(homeProbeRowCount(4), 2)
+  assert.equal(homeProbeRowCount(9), 2)
+
+  const mixed = [2, 2, 2, 4]
+  assert.equal(homeProbeShouldStack(mixed, 0, 4), true)
+  assert.equal(homeProbeShouldStack(mixed, 1, 4), true)
+  assert.equal(homeProbeShouldStack(mixed, 2, 4), true)
+  assert.equal(homeProbeShouldStack(mixed, 3, 4), false)
+
+  const even = [2, 2, 2, 2]
+  assert.equal(homeProbeShouldStack(even, 0, 4), false)
+  assert.equal(homeProbeShouldStack(even, 3, 4), false)
+
+  const nextRow = [2, 2, 2, 2, 4]
+  assert.equal(homeProbeShouldStack(nextRow, 0, 4), false)
+  assert.equal(homeProbeShouldStack(nextRow, 4, 4), false)
+
+  const threeCol = [2, 4, 2]
+  assert.equal(homeProbeShouldStack(threeCol, 0, 3), true)
+  assert.equal(homeProbeShouldStack(threeCol, 2, 3), true)
+
+  assert.equal(homeProbeShouldStack([2, 4], 0, 1), false)
+  assert.equal(homeProbeShouldStack([1, 4], 0, 4), false)
 })

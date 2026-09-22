@@ -4,12 +4,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useSiteLogo } from "@/hooks/use-site-logo"
 import { fetchSetting } from "@/lib/lite-api"
 import { clearHomeScroll } from "@/lib/home-scroll"
+import { LITE_BLUE, LITE_BLUE_HOVER } from "@/theme/brand"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@mui/material"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-
-const BRAND = "#0E86DD"
 
 function Header() {
   const { t } = useTranslation()
@@ -22,10 +21,12 @@ function Header() {
     refetchOnWindowFocus: false,
     staleTime: 60_000,
   })
+  const siteName = settingData?.data?.config?.site_name || "Lite"
+  const siteDesc = settingData?.data?.config?.site_desc || ""
 
   return (
-    <header className="lite-page-header sticky top-0 z-30 border-b border-[#DDE4E9] bg-white/96 pt-[var(--safe-area-top)] h-[calc(82px+var(--safe-area-top))] backdrop-blur-sm dark:border-[#2D3943] dark:bg-[#141B21]/97 max-[620px]:h-[calc(4rem+var(--safe-area-top))]">
-      <div className="lite-page-shell flex h-full items-center justify-between gap-6 max-[620px]:gap-2">
+    <header className="lite-page-header fixed inset-x-0 top-0 z-30 border-b border-[var(--lite-line)] bg-white/96 pt-[var(--safe-area-top)] h-[calc(var(--lite-header-height)+var(--safe-area-top))] backdrop-blur-sm dark:bg-[#1A2636]/97">
+      <div className="lite-page-shell flex h-full items-center gap-3 max-[967px]:gap-2.5 min-[2300px]:gap-5">
         <button
           type="button"
           onClick={() => {
@@ -33,22 +34,22 @@ function Header() {
             clearHomeScroll()
             navigate("/")
           }}
-          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left max-[967px]:gap-2"
         >
-          <img className="size-[38px] shrink-0 rounded-lg object-cover max-[620px]:size-[30px]" alt="site logo" src={customLogo} width={38} height={38} />
-          <span className="flex min-w-0 items-center gap-2 sm:gap-3.5">
+          <img className="size-[31px] shrink-0 rounded-lg object-cover max-[967px]:size-[27px]" alt="site logo" src={customLogo} width={31} height={31} />
+          <span className="flex min-w-0 flex-1 items-center gap-2.5 max-[967px]:gap-2.5">
             {isLoading ? (
               <Skeleton className="h-5 w-40 rounded-md" />
             ) : (
               <>
-                <span className="max-w-[42%] shrink-0 truncate text-[19px] font-semibold leading-none text-[#202A33] dark:text-[#EDF3F6] max-[620px]:text-base sm:max-w-none">
-                  {settingData?.data?.config?.site_name || "Lite"}
+                <span className="max-w-[38%] shrink-0 truncate text-2xl font-bold leading-none tracking-tight text-[#1C252E] dark:text-white max-[967px]:max-w-[34%] max-[967px]:text-xl sm:max-w-[280px]">
+                  {siteName}
                 </span>
-                {settingData?.data?.config?.site_desc ? (
+                {siteDesc ? (
                   <>
-                    <span className="h-4 w-px shrink-0 self-center bg-[#7A8792]/70 sm:h-5" aria-hidden="true" />
-                    <span className="min-w-0 flex-1 text-[11px] leading-snug text-[#7A8792] line-clamp-2 sm:truncate sm:text-base sm:leading-none sm:line-clamp-1">
-                      {settingData.data.config.site_desc}
+                    <span className="h-4 w-px shrink-0 self-center bg-[var(--lite-line)] sm:h-5" aria-hidden="true" />
+                    <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[13px] leading-5 text-[#637381] max-[967px]:text-[10px] max-[967px]:leading-5">
+                      {siteDesc}
                     </span>
                   </>
                 ) : null}
@@ -56,7 +57,7 @@ function Header() {
             )}
           </span>
         </button>
-        <nav className="flex shrink-0 items-center gap-2.5" aria-label="Public dashboard actions">
+        <nav className="flex shrink-0 items-center gap-1.5 max-[967px]:gap-0.5" aria-label="Public dashboard actions">
           <LanguageSwitcher />
           <ModeToggle />
           <Button
@@ -65,11 +66,13 @@ function Header() {
             size="small"
             variant="contained"
             sx={{
-              height: 36,
-              px: 1.8,
-              borderRadius: "6px",
-              bgcolor: BRAND,
-              "&:hover": { bgcolor: "#0C76C4" },
+              height: { xs: 30, sm: 34 },
+              px: { xs: 1.1, sm: 1.75 },
+              ml: { xs: 0.5, sm: 1 },
+              borderRadius: "8px",
+              bgcolor: LITE_BLUE,
+              fontSize: { xs: 12, sm: 14 },
+              "&:hover": { bgcolor: LITE_BLUE_HOVER },
             }}
           >
             {t("login")}

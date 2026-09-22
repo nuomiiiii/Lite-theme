@@ -16,6 +16,13 @@ export function formatSpeed(megabytesPerSecond: number): string {
   return `${(megabytesPerSecond * 1024).toFixed(2)} K/s`
 }
 
+export function splitFormattedMeasure(text: string): { value: string; unit: string } {
+  const trimmed = text.trim()
+  const match = trimmed.match(/^(.*?)(\s+)(\S+)$/)
+  if (!match) return { value: trimmed, unit: "" }
+  return { value: match[1], unit: match[3] }
+}
+
 export function formatCompactTime(timestamp: number): string {
   const date = new Date(timestamp)
   const month = (date.getMonth() + 1).toString().padStart(2, "0")
