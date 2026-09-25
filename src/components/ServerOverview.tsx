@@ -127,12 +127,14 @@ function SpeedBlock({
   total,
   tone,
   compact,
+  className,
 }: {
   label: string
   speed: number
   total: number
   tone: "green" | "blue"
   compact?: boolean
+  className?: string
 }) {
   const { t } = useTranslation()
   const formatted = splitFormattedMeasure(formatSpeed(speed))
@@ -144,6 +146,10 @@ function SpeedBlock({
       <b className="ml-1 font-medium text-[#637381]">{formatBytes(total)}</b>
     </>
   )
+  const unitClass = "shrink-0 whitespace-nowrap text-[11px] font-normal not-italic leading-none tracking-normal text-[#919EAB] max-[967px]:text-[8px]"
+  const valueSize = {
+    fontSize: `min(40px, calc((100cqw - 1.5rem) / ${Math.max(formatted.value.length, 4) * 0.62}))`,
+  } as const
   if (compact) {
     return (
       <div className="min-w-0">
@@ -152,9 +158,9 @@ function SpeedBlock({
           {label}
         </p>
         <div className="mt-1.5 flex items-end justify-between gap-1.5">
-          <strong className="shrink-0 text-[22px] font-semibold leading-none tracking-tight text-[#1C252E] dark:text-white">
-            {formatted.value}
-            <em className="ml-1 text-[8px] font-normal not-italic tracking-normal text-[#919EAB]">{formatted.unit}</em>
+          <strong className="grid min-w-0 shrink grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-1 text-[22px] font-semibold leading-none tracking-tight tabular-nums text-[#1C252E] dark:text-white">
+            <span className="min-w-0 overflow-hidden whitespace-nowrap">{formatted.value}</span>
+            <em className={unitClass}>{formatted.unit}</em>
           </strong>
           <small className="min-w-0 truncate text-right text-[8px] leading-none text-[#919EAB]">{cumulative}</small>
         </div>
@@ -163,17 +169,25 @@ function SpeedBlock({
   }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col">
-      <p className={`flex h-5 shrink-0 items-center gap-1 text-[11px] leading-none ${color}`}>
-        <Icon className="size-3" />
-        {label}
-      </p>
-      <strong className="flex min-h-0 flex-1 items-center truncate text-[36px] font-semibold leading-none tracking-tight text-[#1C252E] dark:text-white">
-        {formatted.value}
-        <em className="ml-1.5 text-[11px] font-normal not-italic tracking-normal text-[#919EAB]">{formatted.unit}</em>
-      </strong>
-      <small className="flex h-4 shrink-0 items-center text-[10px] leading-none text-[#919EAB]">{cumulative}</small>
-    </div>
+    <OverviewPane
+      className={className}
+      header={
+        <span className={`inline-flex items-center gap-1 ${color}`}>
+          <Icon className="size-3" />
+          {label}
+        </span>
+      }
+      footer={cumulative}
+    >
+      <div className="flex min-h-0 w-full flex-1 items-center" style={{ containerType: "inline-size" }}>
+        <strong className="flex min-w-0 items-baseline gap-x-1.5 text-[#1C252E] dark:text-white">
+          <span className="whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums" style={valueSize}>
+            {formatted.value}
+          </span>
+          <em className={unitClass}>{formatted.unit}</em>
+        </strong>
+      </div>
+    </OverviewPane>
   )
 }
 
@@ -205,7 +219,7 @@ export default function ServerOverview({
 
   return (
     <section aria-label={t("overview")}>
-      <div className="hidden overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)] min-[968px]:grid min-[968px]:grid-cols-2 min-[1440px]:h-[170px] min-[1440px]:grid-cols-[minmax(280px,400px)_minmax(220px,320px)_minmax(0,1fr)]">
+      <div className="hidden overflow-hidden rounded-lg border border-[var(--lite-line)] bg-[var(--lite-paper)] min-[968px]:grid min-[968px]:grid-cols-3 min-[1440px]:h-[170px] min-[1440px]:grid-cols-[minmax(260px,380px)_minmax(184px,212px)_minmax(184px,212px)_minmax(0,1fr)]">
         <HealthColumn
           online={online}
           total={total}
@@ -217,12 +231,22 @@ export default function ServerOverview({
           status={status}
           onSelect={setStatus}
         />
-        <div className="grid h-full grid-cols-2 gap-5 border-[var(--lite-line)] px-[22px] py-4 min-[1440px]:border-r max-[1439px]:border-r-0 max-[1919px]:gap-4 max-[1919px]:px-5">
-          <SpeedBlock label={t("serverOverview.liveUpload")} speed={upSpeed} total={up} tone="green" />
-          <SpeedBlock label={t("serverOverview.liveDownload")} speed={downSpeed} total={down} tone="blue" />
-        </div>
+        <SpeedBlock
+          className="border-[var(--lite-line)] border-r px-3.5 max-[1919px]:px-3.5"
+          label={t("serverOverview.liveUpload")}
+          speed={upSpeed}
+          total={up}
+          tone="green"
+        />
+        <SpeedBlock
+          className="border-[var(--lite-line)] px-3.5 max-[1919px]:px-3.5 min-[1440px]:border-r"
+          label={t("serverOverview.liveDownload")}
+          speed={downSpeed}
+          total={down}
+          tone="blue"
+        />
         <OverviewPane
-          className="max-[1439px]:col-span-2 max-[1439px]:border-t max-[1439px]:border-[var(--lite-line)]"
+          className="max-[1439px]:col-span-3 max-[1439px]:border-t max-[1439px]:border-[var(--lite-line)]"
           header={
             <div className="flex w-full items-center justify-between gap-3 text-[#637381]">
               <span>

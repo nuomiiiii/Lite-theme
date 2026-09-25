@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { formatBytes } from "../src/lib/format.ts"
+import { formatBytes, formatSpeed, splitFormattedMeasure } from "../src/lib/format.ts"
 
 test("displays byte sizes as GB and TB instead of GiB and TiB", () => {
   assert.equal(formatBytes(0), "0 Bytes")
@@ -13,4 +13,10 @@ test("displays byte sizes as GB and TB instead of GiB and TiB", () => {
   assert.match(formatBytes(3 * 1024 ** 4), /TB$/)
   assert.doesNotMatch(formatBytes(1024 ** 3), /GiB/)
   assert.doesNotMatch(formatBytes(1024 ** 4), /TiB/)
+})
+
+test("splits live speed into a number and a visible unit", () => {
+  assert.deepEqual(splitFormattedMeasure(formatSpeed(0.945)), { value: "967.68", unit: "K/s" })
+  assert.deepEqual(splitFormattedMeasure(formatSpeed(36.3)), { value: "36.30", unit: "M/s" })
+  assert.deepEqual(splitFormattedMeasure(formatSpeed(2048)), { value: "2.00", unit: "G/s" })
 })
