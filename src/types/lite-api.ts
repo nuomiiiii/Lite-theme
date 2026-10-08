@@ -113,6 +113,8 @@ export interface LiteMonitor {
   interval?: number | null
   /** Per point: the probe ran but got no reply (packet loss), as opposed to no record at all. */
   lost?: boolean[]
+  /** Downsampled bucket width in seconds, when the metric API reported interval_seconds. */
+  bucket_seconds?: number | null
 }
 
 type SettingConfig = {

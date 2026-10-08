@@ -1,10 +1,11 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
 import { fetchMonitor } from "@/lib/lite-api"
-import { HISTORY_TIME_OPTIONS, historyRefetchMs, probeHistoryMaxPoints } from "@/lib/history-range"
+import { weightedSuccessDelay } from "@/lib/ping-sample"
+import { HISTORY_TIME_OPTIONS, historyRefetchMs } from "@/lib/history-range"
 import { readHomeLatencyCache } from "@/lib/home-latency"
 import { selectedTaskSampleCount } from "@/lib/probe-samples"
 import { pickBestProbeTask } from "@/lib/probe-route"
@@ -19,8 +20,10 @@ import {
   decorateChartRows,
   lossLaneKey,
   lossMarkers,
-  pingTooltipModel,
+  networkHoverView,
   sampleCompleteness,
+  taskLinePoints,
+  taskMissingBands,
   type ChartRow,
   type PingGapSeries,
 } from "@/lib/ping-gaps"
@@ -117,7 +120,6 @@ function finiteMetric(value: number | null | undefined): value is number {
 }
 
 function summarizeMonitorTask(name: string, points: MonitorPoint[]): MonitorTaskSummary {
-  const validDelays = points.map((point) => point.avg_delay).filter(finiteMetric)
   const latest = points.at(-1)
   const currentDelay = finiteMetric(latest?.avg_delay) ? latest.avg_delay : null
   let weightedLoss = 0
@@ -134,7 +136,13 @@ function summarizeMonitorTask(name: string, points: MonitorPoint[]): MonitorTask
   return {
     name,
     currentDelay,
-    averageDelay: validDelays.length > 0 ? validDelays.reduce((sum, value) => sum + value, 0) / validDelays.length : null,
+    averageDelay: weightedSuccessDelay(
+      points.map((point) => ({
+        delay: finiteMetric(point.avg_delay) ? point.avg_delay : null,
+        count: point.sample_count,
+        lossPercent: point.packet_loss,
+      })),
+    ),
     packetLoss,
     availability: packetLoss === null ? null : Math.max(0, 100 - packetLoss),
     lastUpdated: latest?.created_at || null,
@@ -212,8 +220,10 @@ export function NetworkChart({ server_id, show, initialMonitorId }: { server_id:
     acc[monitor.monitor_name] = monitor.interval
     return acc
   }, {})
-  // Downsampled windows return one point per bucket, so a bucket is the smallest step we can judge gaps by.
-  const bucketMs = (hours * 3_600_000) / probeHistoryMaxPoints(hours)
+  const bucketMsByTask = monitorRecords.reduce<Record<string, number>>((acc, monitor) => {
+    if (typeof monitor.bucket_seconds === "number" && monitor.bucket_seconds > 0) acc[monitor.monitor_name] = monitor.bucket_seconds * 1000
+    return acc
+  }, {})
 
   const formattedData = hasSamples ? formatData(monitorRecords) : []
   const initialChart = monitorNameForId(monitorRecords, initialMonitorId)
@@ -242,7 +252,7 @@ export function NetworkChart({ server_id, show, initialMonitorId }: { server_id:
       serverName={monitorRecords[0]?.server_name || fallbackServerName}
       formattedData={formattedData}
       taskIntervals={taskIntervals}
-      bucketMs={bucketMs}
+      bucketMsByTask={bucketMsByTask}
       hours={hours}
       isLoading={isLoading}
       isEmpty={isEmpty}
@@ -261,7 +271,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
   serverName,
   formattedData,
   taskIntervals,
-  bucketMs,
+  bucketMsByTask,
   hours,
   isLoading,
   isEmpty,
@@ -276,7 +286,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
   serverName: string
   formattedData: ResultItem[]
   taskIntervals: Record<string, number | null | undefined>
-  bucketMs: number
+  bucketMsByTask: Record<string, number>
   hours: number
   isLoading: boolean
   isEmpty: boolean
@@ -380,17 +390,36 @@ export const NetworkChartClient = React.memo(function NetworkChart({
       activeCharts.map((name) => ({
         key: name,
         intervalSec: taskIntervals[name],
+        bucketMs: bucketMsByTask[name] ?? 0,
         points: (chartData[name] || []).map((point) => ({ time: point.created_at, lost: point.lost })),
       })),
-    [activeCharts, chartData, taskIntervals],
+    [activeCharts, chartData, taskIntervals, bucketMsByTask],
   )
-  const missingBands = useMemo(() => computeMissingBands(gapSeries, { now, minStepMs: bucketMs }), [gapSeries, now, bucketMs])
+  const missingBands = useMemo(() => computeMissingBands(gapSeries, { now }), [gapSeries, now])
   const markers = useMemo(() => lossMarkers(gapSeries), [gapSeries])
 
-  const tooltipModelAt = useCallback(
-    (time: number) => pingTooltipModel({ time, bands: missingBands, series: gapSeries, formatTime }),
-    [missingBands, gapSeries],
-  )
+  const delayLineData = useMemo(() => {
+    const keys = activeCharts.length > 0 ? activeCharts : chartDataKey
+    const single = activeCharts.length === 1
+    const out: Record<string, Array<Record<string, number | null>>> = {}
+    for (const name of keys) {
+      const source = (chartData[name] || [])
+        .filter((point) => Number.isFinite(point.created_at))
+        .map((point) => ({ created_at: point.created_at, value: point.avg_delay ?? null }))
+      const series = gapSeries.find((item) => item.key === name) ?? {
+        key: name,
+        intervalSec: taskIntervals[name],
+        bucketMs: bucketMsByTask[name] ?? 0,
+        points: source.map((point) => ({ time: point.created_at })),
+      }
+      const bands = taskMissingBands(series, { now })
+      const line = taskLinePoints(source, bands, { peak: isPeakEnabled })
+      out[name] = line.map((point) =>
+        single ? { created_at: point.created_at, avg_delay: point.value } : { created_at: point.created_at, [name]: point.value },
+      )
+    }
+    return out
+  }, [activeCharts, bucketMsByTask, chartData, chartDataKey, gapSeries, isPeakEnabled, now, taskIntervals])
 
   const completenessByTask = useMemo(() => {
     const result: Record<string, number | null> = {}
@@ -443,6 +472,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
           strokeWidth={1.4}
           type="linear"
           dot={false}
+          data={delayLineData[chart]}
           dataKey="avg_delay"
           stroke={getColorByIndex(chart)}
           yAxisId="delay"
@@ -459,6 +489,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
             strokeWidth={1.4}
             type="linear"
             dot={false}
+            data={delayLineData[chart]}
             dataKey={chart}
             stroke={getColorByIndex(chart)}
             name={chart}
@@ -477,6 +508,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
             strokeWidth={1.4}
             type="linear"
             dot={false}
+            data={delayLineData[key]}
             dataKey={key}
             stroke={getColorByIndex(key)}
             connectNulls={false}
@@ -526,7 +558,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
     })
 
     return elements
-  }, [activeCharts, chartDataKey, getColorByIndex, missingBands])
+  }, [activeCharts, chartDataKey, delayLineData, getColorByIndex, missingBands])
 
   const smoothedData = useMemo(() => {
     // Special handling for single chart selection
@@ -816,61 +848,62 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                   )}
                   <ChartTooltip
                     isAnimationActive={false}
+                    filterNull={false}
                     defaultIndex={undefined}
                     trigger="hover"
-                    content={(tooltipProps) => (
-                      <ChartTooltipContent
-                        active={tooltipProps.active}
-                        label={tooltipProps.label}
-                        payload={tooltipProps.payload?.filter((item) => !String(item.dataKey).startsWith("loss__"))}
-                        indicator="line"
-                        labelKey="created_at"
-                        labelFormatter={(_, payload) => {
-                          const model = tooltipModelAt(payload[0].payload.created_at as number)
-                          return (
-                            <div className="grid gap-1">
-                              <span>{model.label}</span>
-                              {model.lines.map((line) =>
-                                line.kind === "loss" ? (
-                                  <span key="loss" className="flex flex-wrap items-center gap-x-1 text-[12px] font-normal">
-                                    <span>{t("monitor.lossPrefix")}</span>
-                                    {line.keys.map((name, index) => (
-                                      <span key={name} className="flex items-center gap-1">
-                                        <i className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: getColorByIndex(name) }} />
-                                        {name}
-                                        {index < line.keys.length - 1 ? t("monitor.listSeparator") : ""}
-                                      </span>
-                                    ))}
-                                  </span>
-                                ) : null,
-                              )}
+                    content={(tooltipProps) => {
+                      const time = Number(tooltipProps.payload?.[0]?.payload?.created_at)
+                      if (!tooltipProps.active || !Number.isFinite(time)) return null
+                      const keys = activeCharts.length > 0 ? activeCharts : chartDataKey
+                      const view = networkHoverView({
+                        time,
+                        bands: missingBands,
+                        series: gapSeries,
+                        values: keys.map((name) => ({
+                          key: name,
+                          value: (chartData[name] || []).find((point) => point.created_at === time)?.avg_delay ?? null,
+                        })),
+                        formatTime,
+                      })
+                      const packetLoss = keys.length === 1
+                        ? (chartData[keys[0]] || []).find((point) => point.created_at === time)?.packet_loss
+                        : null
+                      return (
+                        <div className="grid min-w-[8rem] gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                          <span className="font-medium text-foreground">{view.label}</span>
+                          {view.noRecord ? (
+                            <div className="flex items-center gap-1.5 leading-none">
+                              <i className="size-2 shrink-0 rounded-[2px] bg-[#919EAB]/40" />
+                              <span className="text-foreground">{t("monitor.noRecord")}</span>
                             </div>
-                          )
-                        }}
-                        formatter={(value, name, item) => {
-                          if (name === "gap_band") {
-                            // A band row has a single item, so the tooltip drops its label: print the time here.
-                            return (
-                              <div className="grid flex-1 gap-1.5">
-                                <span className="font-medium text-foreground">{tooltipModelAt(item.payload.created_at as number).label}</span>
-                                <div className="flex items-center gap-1.5 leading-none">
-                                  <i className="size-2 shrink-0 rounded-[2px] bg-[#919EAB]/40" />
-                                  <span className="text-foreground">{t("monitor.noRecord")}</span>
-                                </div>
-                              </div>
-                            )
-                          }
-                          const isLoss = name === "packet_loss"
-                          const label = isLoss ? t("monitor.packetLoss") : name === "avg_delay" ? t("monitor.avgDelay") : String(name)
-                          return (
+                          ) : null}
+                          {view.lossKeys.length > 0 ? (
+                            <span className="flex flex-wrap items-center gap-x-1 text-[12px] font-normal">
+                              <span>{t("monitor.lossPrefix")}</span>
+                              {view.lossKeys.map((name, index) => (
+                                <span key={name} className="flex items-center gap-1">
+                                  <i className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: getColorByIndex(name) }} />
+                                  {name}
+                                  {index < view.lossKeys.length - 1 ? t("monitor.listSeparator") : ""}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
+                          {view.values.map((item) => (
+                            <div key={item.key} className="flex flex-1 items-center justify-between leading-none">
+                              <span className="text-muted-foreground">{keys.length === 1 ? t("monitor.avgDelay") : item.key}</span>
+                              <span className="ml-2 font-medium text-foreground tabular-nums">{item.value.toFixed(2)}ms</span>
+                            </div>
+                          ))}
+                          {typeof packetLoss === "number" && Number.isFinite(packetLoss) && !view.noRecord ? (
                             <div className="flex flex-1 items-center justify-between leading-none">
-                              <span className="text-muted-foreground">{label}</span>
-                              <span className="ml-2 font-medium text-foreground tabular-nums">{Number(value).toFixed(2)}{isLoss ? "%" : "ms"}</span>
+                              <span className="text-muted-foreground">{t("monitor.packetLoss")}</span>
+                              <span className="ml-2 font-medium text-foreground tabular-nums">{packetLoss.toFixed(2)}%</span>
                             </div>
-                          )
-                        }}
-                      />
-                    )}
+                          ) : null}
+                        </div>
+                      )
+                    }}
                   />
                   {chartElements}
                 </ComposedChart>

@@ -6,6 +6,7 @@ import { HomeLatencyByServer, mapPingStatsToHomeLatency } from "./home-latency"
 import { mergeAssignedPingMonitors, seedAssignedHomeLatency, unionPingTasksForClient } from "./ping-display"
 import { orderMonitorsByPingTasks } from "./ping-task-order"
 import { mergeResourceSeries, type ResourceHistoryPoint, type ResourceSample, type ResourceTotals } from "./resource-history"
+import { successLatency } from "./ping-sample"
 import { getLiteNodes, uuidToNumber } from "./utils"
 
 export type { ResourceHistoryPoint } from "./resource-history"
@@ -29,6 +30,8 @@ interface LiteMetricSeries {
   tags?: Record<string, string>
   labels?: Record<string, string>
   points?: LiteMetricPoint[]
+  /** Bucket width in seconds when the series was downsampled. */
+  interval_seconds?: number | null
 }
 
 interface LitePingTask {
@@ -72,6 +75,10 @@ function metricPointCount(point: LiteMetricPoint): number {
   return Number.isFinite(count) && count > 0 ? count : 1
 }
 
+function bucketSeconds(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null
+}
+
 function metricPointTime(point: LiteMetricPoint): number | null {
   const time = Date.parse(point.time || "")
   return Number.isFinite(time) ? time : null
@@ -100,16 +107,7 @@ function buildPingLossLookup(seriesList: LiteMetricSeries[]): Map<string, Map<nu
 }
 
 function latencyWithoutLoss(value: unknown, count: number, loss?: PingLossSample): number | null {
-  const average = Number(value)
-  if (!Number.isFinite(average)) return null
-  if (!loss) return average >= 0 ? average : null
-
-  const lost = count * loss.ratio
-  const valid = count - lost
-  if (valid <= 0) return null
-
-  const latency = (average * count + lost) / valid
-  return Number.isFinite(latency) && latency >= 0 ? latency : null
+  return successLatency(value, count, loss?.ratio)
 }
 
 let pingTaskCache: { savedAt: number; tasks: LitePingTask[] } | null = null
@@ -194,6 +192,7 @@ function monitorDataFromMetricSeries(
       sample_count: [] as number[],
       interval: taskIntervals.get(taskId) ?? null,
       lost: [] as boolean[],
+      bucket_seconds: bucketSeconds(series.interval_seconds),
     }
     const lossPoints = lossLookup.get(metricSeriesKey(series))
     const points = [...(series.points || [])].sort((a, b) => (metricPointTime(a) || 0) - (metricPointTime(b) || 0))

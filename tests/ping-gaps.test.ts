@@ -7,8 +7,12 @@ import {
   lossLaneKey,
   lossLaneY,
   lossMarkers,
+  networkHoverView,
+  peakCutDelayValues,
   pingTooltipModel,
   sampleCompleteness,
+  taskLinePoints,
+  taskMissingBands,
   tasksLostAt,
 } from "../src/lib/ping-gaps.ts"
 
@@ -140,16 +144,20 @@ test("unsorted points are handled", () => {
 })
 
 test("sample completeness is records over expected records", () => {
-  // 60 minutes at 60s: 60 expected
-  assert.equal(sampleCompleteness({ records: 30, firstTime: T0, windowEnd: T0 + 3600 * SEC, intervalSec: 60 }), 0.5)
-  assert.equal(sampleCompleteness({ records: 60, firstTime: T0, windowEnd: T0 + 3600 * SEC, intervalSec: 60 }), 1)
+  // 60 minutes at 60s includes the first probe and the probe at the hour: 61 expected
+  const hour = sampleCompleteness({ records: 30, firstTime: T0, windowEnd: T0 + 3600 * SEC, intervalSec: 60 })
+  assert.ok(hour !== null && Math.abs(hour - 30 / 61) < 1e-12)
+  const full = sampleCompleteness({ records: 61, firstTime: T0, windowEnd: T0 + 3600 * SEC, intervalSec: 60 })
+  assert.equal(full, 1)
 })
 
 test("sample completeness counts from the first record, not the window start (task created mid-window)", () => {
-  // window is 1h but the task's first record is 30 minutes in: 30 expected
+  // window is 1h but the task's first record is 30 minutes in: 31 slots through the end
   const windowEnd = T0 + 3600 * SEC
-  assert.equal(sampleCompleteness({ records: 30, firstTime: T0 + 1800 * SEC, windowEnd, intervalSec: 60 }), 1)
-  assert.equal(sampleCompleteness({ records: 15, firstTime: T0 + 1800 * SEC, windowEnd, intervalSec: 60 }), 0.5)
+  const full = sampleCompleteness({ records: 31, firstTime: T0 + 1800 * SEC, windowEnd, intervalSec: 60 })
+  assert.equal(full, 1)
+  const half = sampleCompleteness({ records: 15, firstTime: T0 + 1800 * SEC, windowEnd, intervalSec: 60 })
+  assert.ok(half !== null && Math.abs(half - 15 / 31) < 1e-12)
 })
 
 test("sample completeness caps at 100% and expects at least one record", () => {
@@ -160,10 +168,11 @@ test("sample completeness caps at 100% and expects at least one record", () => {
 })
 
 test("sample completeness floors the expected count at the window edge", () => {
-  // 119 s at 60 s: floor(1.98) = 1 expected
-  assert.equal(sampleCompleteness({ records: 1, firstTime: T0, windowEnd: T0 + 119 * SEC, intervalSec: 60 }), 1)
-  // 120 s at 60 s: 2 expected
-  assert.equal(sampleCompleteness({ records: 1, firstTime: T0, windowEnd: T0 + 120 * SEC, intervalSec: 60 }), 0.5)
+  // 119 s at 60 s: probes at 0 and 60 are due, 120 is not
+  assert.equal(sampleCompleteness({ records: 1, firstTime: T0, windowEnd: T0 + 119 * SEC, intervalSec: 60 }), 0.5)
+  assert.equal(sampleCompleteness({ records: 2, firstTime: T0, windowEnd: T0 + 119 * SEC, intervalSec: 60 }), 1)
+  // 120 s at 60 s: probes at 0, 60 and 120
+  assert.equal(sampleCompleteness({ records: 1, firstTime: T0, windowEnd: T0 + 120 * SEC, intervalSec: 60 }), 1 / 3)
 })
 
 test("sample completeness returns null without usable inputs instead of throwing", () => {
@@ -287,4 +296,126 @@ test("band edges are not inside the band, so the edge record keeps its values", 
   const model = pingTooltipModel({ time: T0, bands: [band], series: [], formatTime: fmtTime })
   assert.equal(model.showValues, true)
   assert.deepEqual(pingTooltipModel({ time: T0 + 600 * SEC, bands: [band], series: [], formatTime: fmtTime }).lines, [])
+})
+
+test("a 30 minute bucket is not a gap when the task interval is shorter", () => {
+  const bucket = 30 * 60 * SEC
+  const times = every(T0, T0 + 4 * bucket, 30 * 60)
+  const guessed = computeMissingBands([series("a", 60, times)], { now: T0 + 4 * bucket, minStepMs: 18 * 60 * SEC })
+  assert.ok(guessed.length > 0)
+  const actual = series("a", 60, times)
+  actual.bucketMs = bucket
+  assert.deepEqual(computeMissingBands([actual], { now: T0 + 4 * bucket }), [])
+  const hole = series("a", 60, [T0, T0 + bucket, T0 + 4 * bucket])
+  hole.bucketMs = bucket
+  assert.deepEqual(computeMissingBands([hole], { now: T0 + 4 * bucket }), [{ start: T0 + bucket, end: T0 + 4 * bucket }])
+})
+
+test("a task that starts later does not erase an earlier task's gap", () => {
+  const early = [T0, T0 + 60 * SEC, T0 + 600 * SEC, T0 + 660 * SEC]
+  const late = [T0 + 600 * SEC, T0 + 660 * SEC]
+  const now = T0 + 660 * SEC
+  const band = [{ start: T0 + 60 * SEC, end: T0 + 600 * SEC }]
+  assert.deepEqual(computeMissingBands([series("e", 60, early)], { now }), band)
+  assert.deepEqual(computeMissingBands([series("e", 60, early), series("l", 60, late)], { now }), band)
+  assert.deepEqual(computeMissingBands([series("e", 60, early), series("empty", 60, [])], { now }), band)
+})
+
+test("after a later task exists, one task's own hole is not a global band", () => {
+  const early = [T0, T0 + 60 * SEC, T0 + 600 * SEC, T0 + 660 * SEC, T0 + 1200 * SEC]
+  const late = every(T0 + 600 * SEC, T0 + 1200 * SEC, 60)
+  assert.deepEqual(computeMissingBands([series("e", 60, early), series("l", 60, late)], { now: T0 + 1200 * SEC }), [
+    { start: T0 + 60 * SEC, end: T0 + 600 * SEC },
+  ])
+})
+
+test("one task's hole breaks only that task's line", () => {
+  const now = T0 + 300 * SEC
+  const fast = series("fast", 60, [T0, T0 + 60 * SEC, T0 + 300 * SEC])
+  const slow = series("slow", 300, [T0, T0 + 300 * SEC])
+  assert.deepEqual(computeMissingBands([fast, slow], { now }), [])
+  assert.deepEqual(taskMissingBands(fast, { now }), [{ start: T0 + 60 * SEC, end: T0 + 300 * SEC }])
+  assert.deepEqual(taskMissingBands(slow, { now }), [])
+  const fastLine = taskLinePoints(
+    [
+      { created_at: T0, value: 1 },
+      { created_at: T0 + 60 * SEC, value: 2 },
+      { created_at: T0 + 300 * SEC, value: 3 },
+    ],
+    taskMissingBands(fast, { now }),
+  )
+  assert.ok(fastLine.some((point) => point.value === null && point.created_at > T0 + 60 * SEC && point.created_at < T0 + 300 * SEC))
+  const slowLine = taskLinePoints(
+    [
+      { created_at: T0, value: 5 },
+      { created_at: T0 + 300 * SEC, value: 6 },
+    ],
+    taskMissingBands(slow, { now }),
+  )
+  assert.ok(slowLine.every((point) => point.value !== null))
+})
+
+test("peak cut does not blend delay across a missing sample", () => {
+  const values = [...Array(11).fill(10), null, ...Array(11).fill(100)]
+  const out = peakCutDelayValues(values)
+  assert.equal(out[12], 100)
+})
+
+test("hover keeps the time and every lost task when no delay value remains", () => {
+  const time = T0 + 60 * SEC
+  const a = series("a", 60, [T0, time], [time])
+  const b = series("b", 60, [T0, time], [time])
+  const c = series("c", 60, [T0, time])
+  const allLost = networkHoverView({
+    time,
+    bands: [],
+    series: [a, b],
+    values: [
+      { key: "a", value: null },
+      { key: "b", value: null },
+    ],
+    formatTime: fmtTime,
+  })
+  assert.equal(allLost.label, `t=${time}`)
+  assert.equal(allLost.noRecord, false)
+  assert.deepEqual(allLost.lossKeys, ["a", "b"])
+  assert.deepEqual(allLost.values, [])
+
+  const mixed = networkHoverView({
+    time,
+    bands: [],
+    series: [a, c],
+    values: [
+      { key: "a", value: null },
+      { key: "c", value: 20 },
+    ],
+    formatTime: fmtTime,
+  })
+  assert.deepEqual(mixed.lossKeys, ["a"])
+  assert.deepEqual(mixed.values, [{ key: "c", value: 20 }])
+
+  const oneOfThree = networkHoverView({
+    time,
+    bands: [],
+    series: [a, b, c],
+    values: [
+      { key: "a", value: null },
+      { key: "b", value: null },
+      { key: "c", value: 8 },
+    ],
+    formatTime: fmtTime,
+  })
+  assert.deepEqual(oneOfThree.lossKeys, ["a", "b"])
+  assert.deepEqual(oneOfThree.values, [{ key: "c", value: 8 }])
+
+  const band = networkHoverView({
+    time: T0 + 300 * SEC,
+    bands: [{ start: T0 + 60 * SEC, end: T0 + 600 * SEC }],
+    series: [a],
+    values: [{ key: "a", value: 12 }],
+    formatTime: fmtTime,
+  })
+  assert.equal(band.noRecord, true)
+  assert.deepEqual(band.values, [])
+  assert.equal(band.label, `t=${T0 + 300 * SEC}`)
 })
