@@ -26,6 +26,11 @@ test("prefetches monitor data on the detail page and only refetches while the ne
   assert.doesNotMatch(chartSource, /enabled:\s*show/)
 })
 
+test("does not treat the open right edge as a missing band while the page sits idle", () => {
+  assert.match(chartSource, /fetchedAt=\{dataUpdatedAt\}/)
+  assert.doesNotMatch(chartSource, /useMemo\(\(\) => Date\.now\(\), \[chartData\]\)/)
+})
+
 test("lists assigned probe tasks even when no samples have arrived", () => {
   assert.match(chartSource, /mergeAssignedPingMonitors|hasTasks/)
   assert.match(chartSource, /monitor.noSamples/)

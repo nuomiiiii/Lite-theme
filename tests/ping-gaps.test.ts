@@ -4,6 +4,7 @@ import test from "node:test"
 import {
   computeMissingBands,
   decorateChartRows,
+  displayedSampleCompleteness,
   lossLaneKey,
   lossLaneY,
   lossMarkers,
@@ -52,13 +53,11 @@ test("a gap of exactly 1.5x interval is not missing, just above it is", () => {
   assert.deepEqual(above, [{ start: T0, end: T0 + 91 * SEC }])
 })
 
-test("a missing tail up to now is a band, a short tail is not", () => {
+test("time after the last stored point is not a missing band", () => {
   const times = every(T0, T0 + 300 * SEC, 60)
   const last = T0 + 300 * SEC
-  assert.deepEqual(computeMissingBands([series("a", 60, times)], { now: last + 600 * SEC }), [
-    { start: last, end: last + 600 * SEC },
-  ])
-  assert.deepEqual(computeMissingBands([series("a", 60, times)], { now: last + 80 * SEC }), [])
+  assert.deepEqual(computeMissingBands([series("a", 60, times)], { now: last + 600 * SEC }), [])
+  assert.deepEqual(taskMissingBands(series("a", 60, times), { now: last + 600 * SEC }), [])
 })
 
 test("time before the earliest record is never counted as missing", () => {
@@ -418,4 +417,112 @@ test("hover keeps the time and every lost task when no delay value remains", () 
   assert.equal(band.noRecord, true)
   assert.deepEqual(band.values, [])
   assert.equal(band.label, `t=${T0 + 300 * SEC}`)
+})
+
+test("a record sitting on a shared gap boundary is not swallowed", () => {
+  const times = [T0, T0 + 180 * SEC, T0 + 360 * SEC]
+  const now = T0 + 360 * SEC
+  const bands = computeMissingBands([series("a", 60, times)], { now })
+  assert.deepEqual(bands, [
+    { start: T0, end: T0 + 180 * SEC },
+    { start: T0 + 180 * SEC, end: T0 + 360 * SEC },
+  ])
+  const success = networkHoverView({
+    time: T0 + 180 * SEC,
+    bands,
+    series: [series("a", 60, times)],
+    values: [{ key: "a", value: 100 }],
+    formatTime: (time) => String(time),
+  })
+  assert.equal(success.noRecord, false)
+  assert.deepEqual(success.values, [{ key: "a", value: 100 }])
+  const lost = networkHoverView({
+    time: T0 + 180 * SEC,
+    bands,
+    series: [series("a", 60, times, [T0 + 180 * SEC])],
+    values: [{ key: "a", value: null }],
+    formatTime: (time) => String(time),
+  })
+  assert.equal(lost.noRecord, false)
+  assert.deepEqual(lost.lossKeys, ["a"])
+})
+
+test("aggregated completeness does not use the bucket start as the first probe", () => {
+  const bucketMs = 1800 * SEC
+  assert.equal(
+    displayedSampleCompleteness({
+      points: [{ time: T0, count: 5 }],
+      windowEnd: T0 + 1799 * SEC,
+      intervalSec: 60,
+      bucketMs,
+    }),
+    null,
+  )
+  assert.equal(
+    displayedSampleCompleteness({
+      points: [
+        { time: T0, count: 5 },
+        { time: T0 + 1800 * SEC, count: 30 },
+      ],
+      windowEnd: T0 + 1800 * SEC + 29 * 60 * SEC,
+      intervalSec: 60,
+      bucketMs,
+    }),
+    1,
+  )
+  assert.equal(
+    displayedSampleCompleteness({
+      points: [{ time: T0, count: 1 }],
+      windowEnd: T0 + 119 * SEC,
+      intervalSec: 60,
+    }),
+    0.5,
+  )
+})
+
+test("aggregated completeness keeps missing buckets after the first one in the expected count", () => {
+  const bucketMs = 1800 * SEC
+  assert.equal(
+    displayedSampleCompleteness({
+      points: [
+        { time: T0, count: 30 },
+        { time: T0 + 3600 * SEC, count: 30 },
+      ],
+      windowEnd: T0 + 5399 * SEC,
+      intervalSec: 60,
+      bucketMs,
+    }),
+    0.5,
+  )
+  const twoGaps = displayedSampleCompleteness({
+    points: [
+      { time: T0, count: 30 },
+      { time: T0 + 5400 * SEC, count: 30 },
+    ],
+    windowEnd: T0 + 7199 * SEC,
+    intervalSec: 60,
+    bucketMs,
+  })
+  assert.ok(twoGaps !== null && Math.abs(twoGaps - 30 / 90) < 1e-12)
+  assert.equal(
+    displayedSampleCompleteness({
+      points: [
+        { time: T0, count: 30 },
+        { time: T0 + 1800 * SEC, count: 30 },
+      ],
+      windowEnd: T0 + 3599 * SEC,
+      intervalSec: 60,
+      bucketMs,
+    }),
+    1,
+  )
+  assert.equal(
+    displayedSampleCompleteness({
+      points: [{ time: T0, count: 30 }],
+      windowEnd: T0 + 5399 * SEC,
+      intervalSec: 60,
+      bucketMs,
+    }),
+    0,
+  )
 })

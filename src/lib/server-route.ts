@@ -33,3 +33,15 @@ export function parsePingTaskId(value: string | null): number | undefined {
 export function isNetworkView(value: string | null): boolean {
   return value === NETWORK_VIEW
 }
+
+/** Tab clicks only. Keep ping_task when staying on network so dashboard jumps still select that task. */
+export function applyServerDetailTabParams(params: URLSearchParams, network: boolean): URLSearchParams {
+  const next = new URLSearchParams(params)
+  if (network) {
+    next.set("view", NETWORK_VIEW)
+    return next
+  }
+  next.delete("view")
+  next.delete("ping_task")
+  return next
+}

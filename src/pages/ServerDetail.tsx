@@ -2,7 +2,7 @@ import { NetworkChart } from "@/components/NetworkChart"
 import ServerDetailChart from "@/components/ServerDetailChart"
 import ServerDetailOverview from "@/components/ServerDetailOverview"
 import TabSwitch from "@/components/TabSwitch"
-import { isNetworkView, parsePingTaskId, resolveServerRouteId } from "@/lib/server-route"
+import { applyServerDetailTabParams, isNetworkView, parsePingTaskId, resolveServerRouteId } from "@/lib/server-route"
 import { cn } from "@/lib/utils"
 import { useEffect, useLayoutEffect, useState } from "react"
 import { Navigate, useParams, useSearchParams } from "react-router-dom"
@@ -15,7 +15,7 @@ export default function ServerDetail() {
   }, [])
 
   const { id: routeId } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const pingTaskId = parsePingTaskId(searchParams.get("ping_task"))
   const openNetworkView = isNetworkView(searchParams.get("view")) || pingTaskId !== undefined
   const serverId = routeId ? resolveServerRouteId(routeId) : null
@@ -25,13 +25,20 @@ export default function ServerDetail() {
     setCurrentTab(openNetworkView ? tabs[1] : tabs[0])
   }, [openNetworkView, routeId])
 
+  const selectTab = (tab: string) => {
+    setCurrentTab(tab)
+    const next = applyServerDetailTabParams(searchParams, tab === tabs[1])
+    if (next.get("view") === searchParams.get("view") && next.get("ping_task") === searchParams.get("ping_task")) return
+    setSearchParams(next, { replace: true })
+  }
+
   if (serverId === null) return <Navigate to="/404" replace />
 
   return (
     <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-4 px-0 server-info">
       <section className="rounded-[16px] border border-[var(--lite-line)] bg-[var(--lite-paper)] shadow-[0_1px_2px_rgba(28,37,46,0.03)]">
         <ServerDetailOverview server_id={serverId} />
-        <TabSwitch tabs={tabs} currentTab={currentTab} setCurrentTab={setCurrentTab} />
+        <TabSwitch tabs={tabs} currentTab={currentTab} setCurrentTab={selectTab} />
       </section>
       <div className="relative w-full overflow-hidden">
         <div

@@ -52,8 +52,6 @@
     "bestTask": "最良のプローブタスク",
     "currentDelay": "現在の遅延",
     "lastUpdate": "最終更新",
-    "legendGap": "灰色の帯：記録なし",
-    "legendLoss": "下部の点：パケットロス（タスクごとに1行）",
     "listSeparator": "、",
     "loadError": "遅延データの読み込みに失敗しました",
     "lossPrefix": "パケットロス：",

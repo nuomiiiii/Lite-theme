@@ -52,8 +52,6 @@
     "bestTask": "Best probe task",
     "currentDelay": "Current latency",
     "lastUpdate": "Last update",
-    "legendGap": "Gray band: no record",
-    "legendLoss": "Bottom dots: packet loss (one row per task)",
     "listSeparator": ",",
     "loadError": "Failed to load latency data",
     "lossPrefix": "Packet loss:",

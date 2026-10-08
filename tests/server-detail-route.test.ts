@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 
-import { isNetworkView, parsePingTaskId, resolveServerRouteId, uuidToNumber } from "../src/lib/server-route.ts"
+import { applyServerDetailTabParams, isNetworkView, parsePingTaskId, resolveServerRouteId, uuidToNumber } from "../src/lib/server-route.ts"
 
 test("supports both server detail route conventions", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8")
@@ -43,6 +43,20 @@ test("opens the network overview only for the explicit network view", () => {
   assert.equal(isNetworkView(null), false)
 })
 
+test("tab clicks write view=network and keep dashboard ping_task", () => {
+  const fromDashboard = applyServerDetailTabParams(new URLSearchParams("view=network&ping_task=7"), true)
+  assert.equal(fromDashboard.get("view"), "network")
+  assert.equal(fromDashboard.get("ping_task"), "7")
+
+  const fromDetail = applyServerDetailTabParams(new URLSearchParams(), true)
+  assert.equal(fromDetail.get("view"), "network")
+  assert.equal(fromDetail.get("ping_task"), null)
+
+  const toDetail = applyServerDetailTabParams(new URLSearchParams("view=network&ping_task=7"), false)
+  assert.equal(toDetail.get("view"), null)
+  assert.equal(toDetail.get("ping_task"), null)
+})
+
 test("uses one resolved server ID for overview, realtime charts and ping charts", () => {
   const page = readFileSync(new URL("../src/pages/ServerDetail.tsx", import.meta.url), "utf8")
   const overview = readFileSync(new URL("../src/components/ServerDetailOverview.tsx", import.meta.url), "utf8")
@@ -53,6 +67,11 @@ test("uses one resolved server ID for overview, realtime charts and ping charts"
   assert.match(page, /window\.scrollTo\(\{ top: 0/)
   assert.match(page, /isNetworkView\(searchParams\.get\("view"\)\) \|\| pingTaskId !== undefined/)
   assert.match(page, /setCurrentTab\(openNetworkView \? tabs\[1\] : tabs\[0\]\)/)
+  assert.match(page, /applyServerDetailTabParams\(searchParams, tab === tabs\[1\]\)/)
+  assert.match(page, /setSearchParams\(next, \{ replace: true \}\)/)
+  assert.doesNotMatch(page, /useEffect\(\(\) => \{\s*setSearchParams/)
+  const card = readFileSync(new URL("../src/components/ServerCard.tsx", import.meta.url), "utf8")
+  assert.match(card, /navigate\(`\/server\/\$\{serverInfo\.uuid \|\| serverInfo\.id\}\?view=network&ping_task=\$\{encodeURIComponent\(taskId\)\}`\)/)
   assert.match(page, /<ServerDetailOverview server_id=\{serverId\}/)
   assert.match(page, /<ServerDetailChart server_id=\{serverId\} show=\{currentTab === tabs\[0\]\}/)
   assert.match(page, /<NetworkChart[\s\S]*server_id=\{serverId\}[\s\S]*initialMonitorId=\{pingTaskId\}/)

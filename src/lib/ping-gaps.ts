@@ -75,7 +75,7 @@ function expectedStepMs(series: PingGapSeries, times: number[], minStepMs: numbe
   return Math.max(observed, floor)
 }
 
-function missingSpans(series: PingGapSeries, now: number, minStepMs: number): Span[] | null {
+function missingSpans(series: PingGapSeries, minStepMs: number): Span[] | null {
   const times = validTimes(series.points)
   if (times.length === 0) return null
   const step = expectedStepMs(series, times, minStepMs)
@@ -85,8 +85,6 @@ function missingSpans(series: PingGapSeries, now: number, minStepMs: number): Sp
   for (let i = 1; i < times.length; i++) {
     if (times[i] - times[i - 1] > limit) spans.push([times[i - 1], times[i]])
   }
-  const last = times[times.length - 1]
-  if (Number.isFinite(now) && now - last > limit) spans.push([last, now])
   return spans
 }
 
@@ -104,7 +102,8 @@ function mergeSpans(spans: Span[]): Span[] {
   const out: Span[] = []
   for (const span of sorted) {
     const last = out[out.length - 1]
-    if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1])
+    // Touching at an endpoint is a real record. Only overlap, not a shared boundary, is one band.
+    if (last && span[0] < last[1]) last[1] = Math.max(last[1], span[1])
     else out.push([span[0], span[1]])
   }
   return out
@@ -115,6 +114,8 @@ function mergeSpans(spans: Span[]): Span[] {
  * A task counts only from its own earliest record: time before it appears is not evidence that
  * other tasks were fine, and a task with no records is ignored. A hole in only some of the
  * started tasks is not a band; that task's own line breaks there instead.
+ * Time after the last stored point is not a band: the page may still be waiting for the next
+ * fetch, and that empty right edge is not "no record".
  *
  * `minStepMs` is an extra floor on the step. Prefer each series' `bucketMs` when the API
  * reported the real bucket width.
@@ -125,7 +126,7 @@ export function computeMissingBands(
 ): TimeBand[] {
   const minStepMs = Number.isFinite(options.minStepMs) && (options.minStepMs as number) > 0 ? (options.minStepMs as number) : 0
   const observed = series.flatMap((item) => {
-    const spans = missingSpans(item, options.now, minStepMs)
+    const spans = missingSpans(item, minStepMs)
     const start = firstTime(item)
     return spans === null || start === null ? [] : [{ spans, start }]
   })
@@ -153,10 +154,10 @@ export function computeMissingBands(
   return mergeSpans(pieces).map(([start, end]) => ({ start, end }))
 }
 
-/** Missing ranges of one task, including a tail up to now. These break that task's line only. */
-export function taskMissingBands(series: PingGapSeries, options: { now: number; minStepMs?: number }): TimeBand[] {
+/** Missing ranges of one task between stored records. These break that task's line only. */
+export function taskMissingBands(series: PingGapSeries, options: { now?: number; minStepMs?: number } = {}): TimeBand[] {
   const minStepMs = Number.isFinite(options.minStepMs) && (options.minStepMs as number) > 0 ? (options.minStepMs as number) : 0
-  const spans = missingSpans(series, options.now, minStepMs)
+  const spans = missingSpans(series, minStepMs)
   return (spans ?? []).map(([start, end]) => ({ start, end }))
 }
 
@@ -174,7 +175,7 @@ export function lossMarkers(series: PingGapSeries[]): LossMarker[] {
 /**
  * Records received divided by records expected, between 0 and 1, or null when it cannot be told.
  * Expected counts the first record and every later slot that falls on or before windowEnd.
- * A downsampled point's time is the bucket start, so this is short by at most one task interval.
+ * Callers that only have a downsampled bucket start must not pass that timestamp as firstTime.
  */
 export function sampleCompleteness(input: {
   records: number
@@ -189,6 +190,45 @@ export function sampleCompleteness(input: {
   if (windowEnd < firstTime) return records > 0 ? 1 : 0
   const expected = Math.floor((windowEnd - firstTime) / (intervalSec * 1000)) + 1
   return Math.min(1, records / Math.max(1, expected))
+}
+
+/**
+ * Completeness shown on the chart. A downsampled series drops the first bucket's count: its time
+ * is the bucket start, not the first probe. The measured window still starts when that bucket
+ * ends, so later buckets that were never returned stay in the expected count. Until that end is
+ * reached the value is unknown. Raw records use the first probe time directly.
+ */
+export function displayedSampleCompleteness(input: {
+  points: Array<{ time: number; count: number }>
+  windowEnd: number
+  intervalSec: number | null | undefined
+  bucketMs?: number | null
+}): number | null {
+  const points = input.points.filter((point) => Number.isFinite(point.time)).sort((a, b) => a.time - b.time)
+  const bucketMs = input.bucketMs
+  const aggregated = typeof bucketMs === "number" && Number.isFinite(bucketMs) && bucketMs > 0
+  if (!aggregated) {
+    const records = points.reduce((sum, point) => sum + (Number.isFinite(point.count) && point.count > 0 ? point.count : 0), 0)
+    return sampleCompleteness({
+      records,
+      firstTime: points[0]?.time ?? null,
+      windowEnd: input.windowEnd,
+      intervalSec: input.intervalSec,
+    })
+  }
+  if (points.length === 0 || !Number.isFinite(input.windowEnd)) return null
+  const rangeStart = points[0].time + bucketMs
+  if (input.windowEnd < rangeStart) return null
+  const records = points.reduce((sum, point) => {
+    if (point.time < rangeStart) return sum
+    return sum + (Number.isFinite(point.count) && point.count > 0 ? point.count : 0)
+  }, 0)
+  return sampleCompleteness({
+    records,
+    firstTime: rangeStart,
+    windowEnd: input.windowEnd,
+    intervalSec: input.intervalSec,
+  })
 }
 
 /** Keys of the tasks that have a packet-loss record exactly at `time`. Tasks without a record then are not listed. */

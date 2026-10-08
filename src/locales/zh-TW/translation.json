@@ -52,8 +52,6 @@
     "bestTask": "最佳探測任務",
     "currentDelay": "目前延遲",
     "lastUpdate": "最後更新",
-    "legendGap": "灰色背景：無記錄",
-    "legendLoss": "底部圓點：丟包（每個任務一行）",
     "listSeparator": "、",
     "loadError": "延遲資料載入失敗",
     "lossPrefix": "丟包：",

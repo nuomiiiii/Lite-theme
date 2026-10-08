@@ -18,10 +18,11 @@ import { formatCompactTime } from "@/lib/format"
 import {
   computeMissingBands,
   decorateChartRows,
+  displayedSampleCompleteness,
+  HOVER_ANCHOR_KEY,
   lossLaneKey,
   lossMarkers,
   networkHoverView,
-  sampleCompleteness,
   taskLinePoints,
   taskMissingBands,
   type ChartRow,
@@ -189,6 +190,7 @@ export function NetworkChart({ server_id, show, initialMonitorId }: { server_id:
 
   const {
     data: monitorData,
+    dataUpdatedAt,
     isPending,
     isFetching,
     isError,
@@ -254,6 +256,7 @@ export function NetworkChart({ server_id, show, initialMonitorId }: { server_id:
       taskIntervals={taskIntervals}
       bucketMsByTask={bucketMsByTask}
       hours={hours}
+      fetchedAt={dataUpdatedAt}
       isLoading={isLoading}
       isEmpty={isEmpty}
       hasError={hasInitialError}
@@ -273,6 +276,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
   taskIntervals,
   bucketMsByTask,
   hours,
+  fetchedAt,
   isLoading,
   isEmpty,
   hasError,
@@ -288,6 +292,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
   taskIntervals: Record<string, number | null | undefined>
   bucketMsByTask: Record<string, number>
   hours: number
+  fetchedAt: number
   isLoading: boolean
   isEmpty: boolean
   hasError: boolean
@@ -382,8 +387,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
     }
   }, [selectedTaskSummaries])
 
-  // "Now" is re-read whenever fresh data arrives, so the tail of the chart is judged against the present.
-  const now = useMemo(() => Date.now(), [chartData])
+  const now = fetchedAt > 0 ? fetchedAt : 0
 
   const gapSeries = useMemo<PingGapSeries[]>(
     () =>
@@ -423,16 +427,19 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 
   const completenessByTask = useMemo(() => {
     const result: Record<string, number | null> = {}
-    for (const summary of taskSummaries) {
-      result[summary.name] = sampleCompleteness({
-        records: summary.samples,
-        firstTime: summary.firstTime,
+    for (const name of chartDataKey) {
+      result[name] = displayedSampleCompleteness({
+        points: (chartData[name] || []).map((point) => ({
+          time: point.created_at,
+          count: finiteMetric(point.sample_count) && point.sample_count > 0 ? point.sample_count : 1,
+        })),
         windowEnd: now,
-        intervalSec: taskIntervals[summary.name],
+        intervalSec: taskIntervals[name],
+        bucketMs: bucketMsByTask[name] ?? 0,
       })
     }
     return result
-  }, [taskSummaries, taskIntervals, now])
+  }, [bucketMsByTask, chartData, chartDataKey, now, taskIntervals])
 
   const chartElements = useMemo(() => {
     const elements = []
@@ -785,18 +792,6 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                   {activeCharts.length > 4 && <span className="text-[12px] text-[#919EAB]">+{activeCharts.length - 4}</span>}
                 </div>
               ) : null}
-              {showTaskLayout ? (
-                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-[#919EAB]" data-testid="network-chart-gap-legend">
-                  <span className="flex items-center gap-1">
-                    <i className="size-1.5 shrink-0 rounded-full bg-[#919EAB]" />
-                    {t("monitor.legendLoss")}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <i className="size-2 shrink-0 rounded-[2px] bg-[#919EAB]/30" />
-                    {t("monitor.legendGap")}
-                  </span>
-                </p>
-              ) : null}
             </div>
           </div>
           {showTaskLayout ? (
@@ -827,6 +822,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                   <CartesianGrid vertical={false} />
                   <XAxis
                     dataKey="created_at"
+                    allowDuplicatedCategory={false}
                     type="number"
                     scale="time"
                     domain={["dataMin", Number.isFinite(xDomainEnd) ? xDomainEnd : "dataMax"]}
@@ -852,7 +848,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                     defaultIndex={undefined}
                     trigger="hover"
                     content={(tooltipProps) => {
-                      const time = Number(tooltipProps.payload?.[0]?.payload?.created_at)
+                      // Axis label is the hovered time. Series payloads are matched by time, not by array index.
+                      const time = Number(tooltipProps.label)
                       if (!tooltipProps.active || !Number.isFinite(time)) return null
                       const keys = activeCharts.length > 0 ? activeCharts : chartDataKey
                       const view = networkHoverView({
@@ -905,6 +902,20 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                       )
                     }}
                   />
+                  {hasChartData ? (
+                    <Line
+                      data={processedData}
+                      dataKey={HOVER_ANCHOR_KEY}
+                      yAxisId="marker"
+                      stroke="none"
+                      strokeWidth={0}
+                      dot={false}
+                      activeDot={false}
+                      legendType="none"
+                      isAnimationActive={false}
+                      connectNulls={false}
+                    />
+                  ) : null}
                   {chartElements}
                 </ComposedChart>
               </ChartContainer>
