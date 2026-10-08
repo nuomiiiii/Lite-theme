@@ -145,7 +145,7 @@ function summarizeMonitorTask(name: string, points: MonitorPoint[]): MonitorTask
 }
 
 function formatDelay(value: number | null): string {
-  return value === null ? "--" : `${Math.round(value)} ms`
+  return value === null ? "--" : `${value.toFixed(2)} ms`
 }
 
 function formatPercentage(value: number | null, digits = 1): string {
@@ -810,7 +810,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
                     }}
                   />
                   <YAxis yAxisId="marker" hide domain={[0, 1]} />
-                  <YAxis yAxisId="delay" tickLine={false} axisLine={false} tickMargin={15} minTickGap={20} tickFormatter={(value) => `${value}ms`} />
+                  <YAxis yAxisId="delay" tickLine={false} axisLine={false} tickMargin={15} minTickGap={20} tickFormatter={(value) => `${Number(value).toFixed(2)}ms`} />
                   {activeCharts.length === 1 && (
                     <YAxis yAxisId="packet-loss" orientation="right" tickLine={false} axisLine={false} tickMargin={15} minTickGap={20} tickFormatter={(value) => `${value}%`} />
                   )}

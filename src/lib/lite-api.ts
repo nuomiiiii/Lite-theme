@@ -210,7 +210,9 @@ function monitorDataFromMetricSeries(
       monitor.avg_delay.push(delay)
       const lossRatio = loss?.ratio ?? (Number(point.value) < 0 ? 1 : 0)
       monitor.packet_loss.push(lossRatio * 100)
-      monitor.lost.push(lossRatio > 0)
+      // A downsampled bucket is one loss mark only when every sample in it failed.
+      // Partial loss stays on the packet-loss percentage.
+      monitor.lost.push(lossRatio >= 1)
       monitor.sample_count.push(loss?.count ?? count)
     }
 

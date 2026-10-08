@@ -25,7 +25,7 @@ function TaskProbe({
 }) {
   const { t } = useTranslation()
   const latencyTone = latencyBarTone(summary.latency)
-  const latency = summary.latency === null ? "--" : `${Math.round(summary.latency)} ms`
+  const latency = summary.latency === null ? "--" : `${summary.latency.toFixed(2)} ms`
   const packetLoss = formatProbePacketLoss(summary.packetLoss)
   const percent = hourPacketFillPercent(summary)
   const fillTone = packetFillTone(percent)
