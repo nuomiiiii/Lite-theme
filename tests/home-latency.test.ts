@@ -4,9 +4,9 @@ import test from "node:test"
 
 import {
   HOME_CARD_WIDTH,
+  HOME_FIVE_COL_WIDTH,
   HOME_FOUR_COL_WIDTH,
   HOME_LATENCY_CARD_LIMIT,
-  HOME_THREE_COL_WIDTH,
   HOME_TWO_COL_WIDTH,
   formatProbePacketLoss,
   homeCardColumnCount,
@@ -169,11 +169,11 @@ test("homepage cards keep at most four probe tasks", () => {
   assert.equal(HOME_LATENCY_CARD_LIMIT, 4)
 })
 
-test("homepage probes use two columns and stretch the last odd task on every viewport", () => {
+test("homepage probes stay a single vertical list of at most four tasks", () => {
   const latency = readFileSync(new URL("../src/components/ServerLatencySummary.tsx", import.meta.url), "utf8")
-  assert.match(latency, /grid-cols-2/)
-  assert.match(latency, /\[&>\.probe:nth-child\(odd\):last-child\]:col-span-2/)
-  assert.match(latency, /stackProbes \? "grid-cols-1"/)
+  assert.match(latency, /slice\(0, HOME_LATENCY_CARD_LIMIT\)/)
+  assert.match(latency, /lite-server-card__probe-row/)
+  assert.doesNotMatch(latency, /grid-cols-2|stackProbes|col-span-2/)
   assert.doesNotMatch(latency, /homeLatencyGridTemplate|home-latency-cols/)
 })
 
@@ -181,20 +181,20 @@ test("homepage card columns follow the server grid breakpoints", () => {
   assert.equal(homeCardColumnCount(967), 1)
   assert.equal(homeCardColumnCount(968), 2)
   assert.equal(homeCardColumnCount(1439), 2)
-  assert.equal(homeCardColumnCount(1440), 3)
-  assert.equal(homeCardColumnCount(1919), 3)
-  assert.equal(homeCardColumnCount(1920), 4)
+  assert.equal(homeCardColumnCount(1440), 4)
+  assert.equal(homeCardColumnCount(1919), 4)
+  assert.equal(homeCardColumnCount(1920), 5)
   assert.equal(homePageMaxWidth(1), null)
   assert.equal(homePageMaxWidth(2), HOME_TWO_COL_WIDTH)
-  assert.equal(homePageMaxWidth(3), HOME_THREE_COL_WIDTH)
   assert.equal(homePageMaxWidth(4), HOME_FOUR_COL_WIDTH)
+  assert.equal(homePageMaxWidth(5), HOME_FIVE_COL_WIDTH)
   assert.equal(homeCardTrackWidth(1), null)
   assert.equal(homeCardTrackWidth(2), HOME_TWO_COL_WIDTH - 56)
-  assert.equal(homeCardTrackWidth(3), HOME_THREE_COL_WIDTH - 56)
-  assert.equal(homeCardTrackWidth(4), HOME_FOUR_COL_WIDTH - 80)
+  assert.equal(homeCardTrackWidth(4), HOME_FOUR_COL_WIDTH - 56)
   assert.equal(homeCardTrackWidth(4), HOME_CARD_WIDTH * 4 + 48)
+  assert.equal(homeCardTrackWidth(5), HOME_FIVE_COL_WIDTH - 80)
   const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
-  assert.match(css, /max-w-\[1920px\].*max-\[1919px\]:max-w-\[1440px\].*max-\[1439px\]:max-w-\[1260px\]/)
+  assert.match(css, /max-w-\[1920px\].*max-\[1919px\]:max-w-\[1680px\].*max-\[1439px\]:max-w-\[1120px\]/)
   const home = readFileSync(new URL("../src/pages/Server.tsx", import.meta.url), "utf8")
   assert.match(home, /repeat\(\$\{cardColumns\}, minmax\(0, 1fr\)\)/)
 })

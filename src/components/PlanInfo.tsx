@@ -15,13 +15,13 @@ export default function PlanInfo({
   if (extraList.length === 0) return null
 
   return (
-    <section className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+    <section className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-1.5">
       {extraList.map((extra) => {
         const tone = SERVER_TAG_TONE[extra.color]
         return (
           <span
             key={`${extra.color}:${extra.text}`}
-            className="whitespace-nowrap rounded-[6px] px-[7px] py-1 text-[10px] font-medium [background:var(--tag-bg)] [color:var(--tag-fg)] dark:[background:var(--tag-dark-bg)] dark:[color:var(--tag-dark-fg)]"
+            className="max-w-full whitespace-normal rounded-[6px] px-[7px] py-1 text-[10px] font-medium [overflow-wrap:anywhere] [background:var(--tag-bg)] [color:var(--tag-fg)] dark:[background:var(--tag-dark-bg)] dark:[color:var(--tag-dark-fg)]"
             style={{
               ["--tag-bg" as string]: tone.bg,
               ["--tag-fg" as string]: tone.fg,

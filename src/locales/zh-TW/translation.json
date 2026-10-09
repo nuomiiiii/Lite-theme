@@ -26,6 +26,7 @@
     "greetEvening": "晚上好",
     "greetForenoon": "上午好",
     "greetMorning": "早上好",
+    "greetComma": "，",
     "greetNoon": "中午好",
     "liveUpdate": "資料每5S更新",
     "serverCount": "{{count}} 台",
@@ -97,11 +98,14 @@
     "days": "天",
     "download": "下載",
     "hours": "小時",
+    "latency": "延遲",
     "load": "負載",
     "mem": "記憶體",
     "networkQuality": "網路品質",
     "packetLoss": "丟包率",
     "recentHour": "最近 1 小時",
+    "route": "線路",
+    "sampleFill": "最近 1 小時有效取樣率 {{percent}}%",
     "stg": "儲存",
     "upload": "上傳",
     "uptime": "運行時間"
@@ -211,6 +215,7 @@
   },
   "traffic": {
     "resetInDays": "{{count}} 天後重設",
-    "resetToday": "今天重設"
+    "resetToday": "今天重設",
+    "usedTraffic": "已用流量"
   }
 }

@@ -5,6 +5,7 @@ import test from "node:test"
 import { packetFillTone, packetLossTone, resourceUsageTone, cpuCoreCount, loadUsagePercent } from "../src/lib/meter-tone.ts"
 
 const serverCard = readFileSync(new URL("../src/components/ServerCard.tsx", import.meta.url), "utf8")
+const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8")
 const utils = readFileSync(new URL("../src/lib/utils.ts", import.meta.url), "utf8")
 const detailChart = readFileSync(new URL("../src/components/ServerDetailChart.tsx", import.meta.url), "utf8")
 
@@ -55,6 +56,11 @@ test("load bars use per-core load instead of the CPU model name count", () => {
   assert.match(utils, /cpu_cores: Number\(server\.cpu_cores\) \|\| 0/)
   assert.match(serverCard, /loadUsagePercent\(info\.load_1, info\.cpu_cores\)/)
   assert.match(serverCard, /resourceUsageTone/)
+  assert.match(serverCard, /RESOURCE_SWATCH\.(cpu|memory|storage|load)/)
+  assert.match(css, /--card-accent: #078dee/)
+  assert.match(css, /--card-green: #22c55e/)
+  assert.match(css, /--card-danger: #ff5630/)
+  assert.doesNotMatch(css, /#529cdb|#39a587|#d37960|#7AAED6/i)
   assert.match(serverCard, /RESOURCE_SWATCH/)
   assert.doesNotMatch(serverCard, /cpu_info\.filter/)
   assert.match(detailChart, /RESOURCE_SWATCH/)

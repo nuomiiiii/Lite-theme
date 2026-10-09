@@ -1,4 +1,5 @@
 import { useStatus } from "@/hooks/use-status"
+import { fetchAccount } from "@/lib/lite-api"
 import { formatBytes, formatSpeed } from "@/lib/format"
 import { healthStatusDots } from "@/lib/health-dots"
 import { homeTrafficWindowMs, recordHomeTraffic, type TrafficSample } from "@/lib/live-traffic"
@@ -7,6 +8,7 @@ import { THEME } from "@/lib/theme-tokens"
 import { readShowMobileHomeOverview } from "@/lib/theme-config"
 import { cn } from "@/lib/utils"
 import { ArrowUpDown, Cable, Cpu, Database, HardDrive, MemoryStick } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 import { useMemo, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -81,6 +83,13 @@ function TrafficMini({ samples, tone }: { samples: TrafficSample[]; tone: "up" |
 export default function ServerOverview({ online, offline, total, up, down, upSpeed, downSpeed, now, servers }: ServerOverviewProps) {
   const { t } = useTranslation()
   const { status, setStatus } = useStatus()
+  const { data: account } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchAccount,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  })
+  const username = account?.logged_in ? account.username.trim() : ""
   const showMobileOverview = readShowMobileHomeOverview()
   const availability = total > 0 ? Math.round((online / total) * 1000) / 10 : 0
   const trafficSamples = useMemo(() => recordHomeTraffic(upSpeed, downSpeed, now), [downSpeed, now, upSpeed])
@@ -125,7 +134,10 @@ export default function ServerOverview({ online, offline, total, up, down, upSpe
                 <span className="inline-flex h-7 items-center justify-center rounded-full border border-[#078DEE]/20 bg-[color-mix(in_srgb,#078DEE_12%,var(--lite-paper))] px-2.5 text-[11px] font-medium leading-none text-[#078DEE] dark:border-[#078DEE]/30 min-[1151px]:translate-y-0 max-[967px]:absolute max-[967px]:left-[14px] max-[967px]:top-0 max-[967px]:z-10 max-[967px]:h-6 max-[967px]:-translate-y-1/2 max-[967px]:px-2.5">
                   {t("home.title")}
                 </span>
-                <h1 className="mt-4 text-[28px] font-semibold leading-none tracking-tight text-[#1C252E] dark:text-white max-[967px]:mt-1.5 max-[967px]:text-[22px] min-[1151px]:ml-[3px]">{t(greetingKey(now))}</h1>
+                <h1 className="mt-4 flex min-w-0 items-end text-[28px] font-semibold leading-none tracking-tight text-[#1C252E] dark:text-white max-[967px]:mt-1.5 max-[967px]:text-[22px] min-[1151px]:ml-[3px]">
+                  <span className="shrink-0">{t(greetingKey(now))}{username ? t("home.greetComma") : ""}</span>
+                  {username ? <span className="lite-home-greeting-name ml-[0.32em] min-w-0 translate-y-[0.11em] truncate bg-[linear-gradient(90deg,#5B8CFF_0%,#8B6CFF_52%,#C45CFF_100%)] bg-clip-text text-transparent">{username}</span> : null}
+                </h1>
                 <p className="mt-3 text-[12px] text-[#919EAB] max-[967px]:mt-2 min-[1151px]:ml-[3px]">{t("home.subtitle")}</p>
               </div>
             </div>

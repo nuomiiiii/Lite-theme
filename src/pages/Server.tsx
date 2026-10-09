@@ -5,7 +5,7 @@ import { Loader } from "@/components/loading/Loader"
 import type { SortType } from "@/context/sort-context"
 import { useStatus } from "@/hooks/use-status"
 import { useWebSocketContext } from "@/hooks/use-websocket-context"
-import { HOME_LATENCY_CARD_LIMIT, homeCardColumnCount, homeProbeShouldStack, readHomeLatencyCache, writeHomeLatencyCache } from "@/lib/home-latency"
+import { homeCardColumnCount, readHomeLatencyCache, writeHomeLatencyCache } from "@/lib/home-latency"
 import { applyHomeProbeTaskOrder, homeProbeOverrideIds } from "@/lib/home-probe-tasks"
 import { restoreHomeScroll, saveHomeScroll } from "@/lib/home-scroll"
 import { fetchHomeLatency, fetchServerGroup } from "@/lib/lite-api"
@@ -162,9 +162,6 @@ export default function Servers() {
   const probeOverrides = readHomeProbeTaskOverrides()
   const latencyFor = (uuid?: string) =>
     applyHomeProbeTaskOrder(uuid ? homeLatency[uuid] || [] : [], homeProbeOverrideIds(probeOverrides, uuid || ""))
-  const probeCounts = filteredServers.map((server) => Math.min(HOME_LATENCY_CARD_LIMIT, latencyFor(server.uuid).length))
-  const stackLatencyProbes = probeCounts.map((_, index) => homeProbeShouldStack(probeCounts, index, cardColumns))
-
   return (
     <div className="w-full">
       <ServerOverview
@@ -201,17 +198,16 @@ export default function Servers() {
         </Select>
       </section>
       <section
-        className="grid items-start gap-4"
+        className="grid items-stretch gap-4"
         style={{ gridTemplateColumns: `repeat(${cardColumns}, minmax(0, 1fr))` }}
         aria-label="Server list"
       >
-        {filteredServers.map((serverInfo, index) => (
+        {filteredServers.map((serverInfo) => (
           <ServerCard
             now={websocketData.now}
             key={serverInfo.id}
             serverInfo={serverInfo}
             latencySummaries={latencyFor(serverInfo.uuid)}
-            stackLatencyProbes={stackLatencyProbes[index]}
           />
         ))}
       </section>

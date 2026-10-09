@@ -1,6 +1,7 @@
 import { formatBytes } from "@/lib/format"
-import { METER_TONE_COLOR, resourceUsageTone } from "@/lib/meter-tone"
+import { resourceUsageTone } from "@/lib/meter-tone"
 import { daysUntilTrafficReset } from "@/lib/trafficReset"
+import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 
 interface TrafficBarProps {
@@ -10,12 +11,32 @@ interface TrafficBarProps {
   limitType: string
 }
 
+function trafficToneClass(percent: number) {
+  const tone = resourceUsageTone(percent)
+  if (tone === "amber") return "lite-server-card__tone--amber"
+  if (tone === "coral") return "lite-server-card__tone--danger"
+  return "lite-server-card__tone--traffic"
+}
+
+function resetToneClass(days: number | undefined) {
+  if (days === undefined) return ""
+  if (days <= 0) return "lite-server-card__tone--danger"
+  if (days < 14) return "lite-server-card__tone--amber"
+  return ""
+}
+
+function trafficFillClass(percent: number) {
+  const tone = resourceUsageTone(percent)
+  if (tone === "amber") return "lite-server-card__fill--amber"
+  if (tone === "coral") return "lite-server-card__fill--danger"
+  return "lite-server-card__fill--traffic"
+}
+
 export default function TrafficBar({ used, limit, resetDay }: TrafficBarProps) {
   const { t } = useTranslation()
   if (limit <= 0) return null
 
   const percent = Math.min(100, Math.max(0, (used / limit) * 100))
-  const tone = METER_TONE_COLOR[resourceUsageTone(percent)]
   const resetInDays = daysUntilTrafficReset(resetDay)
   const resetLabel = resetInDays === undefined
     ? ""
@@ -24,17 +45,18 @@ export default function TrafficBar({ used, limit, resetDay }: TrafficBarProps) {
       : t("traffic.resetInDays", { count: resetInDays })
 
   return (
-    <div className="mx-[18px] border-t border-[var(--lite-line)] py-2.5 max-[967px]:mx-[15px]">
-      <div className="flex justify-between gap-4 text-[11px] text-[#919EAB]">
-        <span>
-          <strong className="text-[13px] font-medium text-[#637381]">{formatBytes(used)}</strong> / {formatBytes(limit)}
-        </span>
-        <span className="text-right max-[967px]:text-left">
-          {percent.toFixed(2)}%{resetLabel ? ` · ${resetLabel}` : ""}
-        </span>
+    <div className="lite-server-card__quota">
+      <div className="lite-server-card__quota-line">
+        <b className="tabular-nums">{formatBytes(used)}</b>
+        <span>/ {formatBytes(limit)}</span>
+        <span className={cn("lite-server-card__quota-percent tabular-nums", trafficToneClass(percent))}>{percent.toFixed(2)}%</span>
       </div>
-      <div className="mt-1.5 h-[5px] overflow-hidden rounded-[3px] bg-[#F4F6F8] dark:bg-[#2A3A4D]">
-        <span className="block h-full rounded-[3px] transition-[width] duration-300" style={{ width: `${percent}%`, background: tone }} />
+      <div className="lite-server-card__quota-meter" aria-hidden="true">
+        <span className={trafficFillClass(percent)} style={{ width: `${percent}%` }} />
+      </div>
+      <div className="lite-server-card__quota-meta">
+        <span>{t("traffic.usedTraffic")}</span>
+        {resetLabel ? <span className={resetToneClass(resetInDays)}>{resetLabel}</span> : null}
       </div>
     </div>
   )

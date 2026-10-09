@@ -12,10 +12,12 @@ export default function BillingInfo({
   parsedData,
   remainingValue,
   remainingValueCurrency,
+  variant = "chip",
 }: {
   parsedData: PublicNoteData
   remainingValue?: string
   remainingValueCurrency?: string
+  variant?: "chip" | "card"
 }) {
   const { t } = useTranslation()
   const [, setTick] = useState(0)
@@ -57,6 +59,36 @@ export default function BillingInfo({
   const remainingValueLabel = readShowServerRemainingValue()
     ? formatRemainingValue(remainingValue, remainingValueCurrency || billingData.currency)
     : ""
+
+  if (variant === "card") {
+    const amountLabel = hasPrice ? formatBillingAmount(billingData.amount, billingData.currency) : price
+    const cycleLabel = hasPrice ? `/${billingData.cycle}` : ""
+    const dayLine = indefinite || expired ? remainingDaysText : `${remainingLabel} ${remainingDaysText}`
+    const daysDanger = expired || remainingTone === "danger"
+    return (
+      <div className={remainingValueLabel ? "lite-server-card__bill lite-server-card__bill--stacked" : "lite-server-card__bill"}>
+        <strong className="lite-server-card__footer-price">
+          {amountLabel}
+          {cycleLabel ? <small>{cycleLabel}</small> : null}
+        </strong>
+        {amountLabel && (dayLine || remainingValueLabel) ? <i className="lite-server-card__footer-rule" aria-hidden="true" /> : null}
+        {dayLine || remainingValueLabel ? (
+          <span className="lite-server-card__footer-remain">
+            {dayLine ? (
+              <span className={daysDanger ? "lite-server-card__footer-days lite-server-card__footer-days--danger" : "lite-server-card__footer-days"}>
+                {dayLine}
+              </span>
+            ) : null}
+            {remainingValueLabel ? (
+              <span className="lite-server-card__footer-extra" data-testid="remaining-value">
+                {t("billingInfo.remainingShort")} {remainingValueLabel}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="billing inline-flex max-w-full flex-wrap items-center gap-1.5">

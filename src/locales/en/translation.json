@@ -26,6 +26,7 @@
     "greetEvening": "Good evening",
     "greetForenoon": "Good morning",
     "greetMorning": "Good morning",
+    "greetComma": ",",
     "greetNoon": "Good afternoon",
     "liveUpdate": "Updates every 5s",
     "serverCount": "{{count}} servers",
@@ -97,11 +98,14 @@
     "days": "Days",
     "download": "Download",
     "hours": "Hours",
+    "latency": "Latency",
     "load": "Load",
     "mem": "MEM",
     "networkQuality": "Network quality",
     "packetLoss": "Packet loss",
     "recentHour": "Last hour",
+    "route": "Route",
+    "sampleFill": "Last-hour valid sample rate {{percent}}%",
     "stg": "STG",
     "upload": "Upload",
     "uptime": "Uptime"
@@ -211,6 +215,7 @@
   },
   "traffic": {
     "resetInDays": "Resets in {{count}} days",
-    "resetToday": "Resets today"
+    "resetToday": "Resets today",
+    "usedTraffic": "Used traffic"
   }
 }

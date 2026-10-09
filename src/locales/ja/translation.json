@@ -26,6 +26,7 @@
     "greetEvening": "こんばんは",
     "greetForenoon": "おはよう",
     "greetMorning": "おはよう",
+    "greetComma": "、",
     "greetNoon": "こんにちは",
     "liveUpdate": "5秒ごとに更新",
     "serverCount": "{{count}} 台",
@@ -97,11 +98,14 @@
     "days": "日",
     "download": "受信",
     "hours": "時間",
+    "latency": "遅延",
     "load": "負荷",
     "mem": "メモリ",
     "networkQuality": "ネットワーク品質",
     "packetLoss": "パケットロス",
     "recentHour": "直近 1 時間",
+    "route": "回線",
+    "sampleFill": "直近1時間の有効サンプル率 {{percent}}%",
     "stg": "ストレージ",
     "upload": "送信",
     "uptime": "稼働時間"
@@ -211,6 +215,7 @@
   },
   "traffic": {
     "resetInDays": "{{count}} 日後にリセット",
-    "resetToday": "本日リセット"
+    "resetToday": "本日リセット",
+    "usedTraffic": "使用済み通信量"
   }
 }

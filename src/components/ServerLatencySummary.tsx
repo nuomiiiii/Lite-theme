@@ -5,12 +5,19 @@ import {
   hourPacketFillPercent,
   latencyBarTone,
 } from "@/lib/home-latency"
-import { METER_TONE_COLOR, packetFillTone } from "@/lib/meter-tone"
+import { packetLossTone } from "@/lib/meter-tone"
 import { readShowHomePacketLoss } from "@/lib/theme-config"
-import { THEME } from "@/lib/theme-tokens"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
+
+function toneClass(tone: string) {
+  if (tone === "green") return "lite-server-card__tone--green"
+  if (tone === "amber") return "lite-server-card__tone--amber"
+  if (tone === "coral") return "lite-server-card__tone--danger"
+  if (tone === "empty") return "lite-server-card__tone--muted"
+  return ""
+}
 
 function TaskProbe({
   summary,
@@ -25,44 +32,42 @@ function TaskProbe({
 }) {
   const { t } = useTranslation()
   const latencyTone = latencyBarTone(summary.latency)
-  const latency = summary.latency === null ? "--" : `${summary.latency.toFixed(2)} ms`
+  const lossTone = packetLossTone(summary.packetLoss)
+  const hasLatency = summary.latency !== null && Number.isFinite(summary.latency)
   const packetLoss = formatProbePacketLoss(summary.packetLoss)
   const percent = hourPacketFillPercent(summary)
-  const fillTone = packetFillTone(percent)
   const lossLabel = t("serverCard.packetLoss")
-  const title = showPacketLoss ? `${summary.taskName} · ${latency} · ${lossLabel} ${packetLoss}` : `${summary.taskName} · ${latency}`
+  const latencyLabel = hasLatency ? `${summary.latency!.toFixed(2)} ms` : "--"
+  const title = showPacketLoss
+    ? `${summary.taskName} · ${latencyLabel} · ${lossLabel} ${packetLoss} · ${t("serverCard.sampleFill", { percent: percent.toFixed(0) })}`
+    : `${summary.taskName} · ${latencyLabel} · ${t("serverCard.sampleFill", { percent: percent.toFixed(0) })}`
 
   return (
     <button
       type="button"
       title={title}
       onPointerDown={() => onPress?.()}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.stopPropagation()
+        if (event.key === " ") event.preventDefault()
+      }}
       onClick={(event) => {
         if (!onSelect) return
         event.stopPropagation()
         onSelect(summary.taskId)
       }}
-      className="probe min-w-0 text-left"
+      className="lite-server-card__probe"
     >
-      <div className="flex min-w-0 items-center justify-between gap-2 overflow-hidden">
-        <span className="min-w-[4em] flex-1 truncate text-[11px] font-medium leading-none text-[#566571] dark:text-[#B2C0C9]">{summary.taskName}</span>
-        <span className="flex shrink-0 items-center gap-2 max-[967px]:gap-1.5">
-          <strong className="text-[16px] font-semibold leading-none tabular-nums max-[967px]:text-[15px]" style={{ color: METER_TONE_COLOR[latencyTone] }}>
-            {latency}
-          </strong>
-          {showPacketLoss ? (
-            <>
-              <span aria-hidden="true" className="h-2.5 w-px bg-[#DCE3E7] dark:bg-[#35434D]" />
-              <span className="whitespace-nowrap text-[11px] leading-none tabular-nums text-[#7A8792]">{packetLoss}</span>
-            </>
-          ) : null}
-        </span>
-      </div>
-      <div className="mt-1.5 h-[5px] overflow-hidden rounded-[3px] bg-[#E9EEF1] dark:bg-[#2B3740]">
-        <span
-          className="block h-full rounded-[3px]"
-          style={{ width: `${percent}%`, background: fillTone === "empty" ? "transparent" : METER_TONE_COLOR[fillTone] }}
-        />
+      <div className={cn("lite-server-card__probe-row", !showPacketLoss && "lite-server-card__probe-row--no-loss")}>
+        <span className="lite-server-card__probe-name">{summary.taskName}</span>
+        <strong className={cn("lite-server-card__delay tabular-nums", toneClass(latencyTone))}>
+          {hasLatency ? summary.latency!.toFixed(2) : "--"}
+          {hasLatency ? <small>ms</small> : null}
+        </strong>
+        {showPacketLoss ? (
+          <span className={cn("lite-server-card__loss tabular-nums", lossTone === "green" ? "" : toneClass(lossTone))}>{packetLoss}</span>
+        ) : null}
       </div>
     </button>
   )
@@ -70,12 +75,10 @@ function TaskProbe({
 
 export default function ServerLatencySummary({
   summaries,
-  stackProbes,
   onSelectTask,
   onPrefetch,
 }: {
   summaries?: HomeLatencyTaskSummary[]
-  stackProbes?: boolean
   onSelectTask?: (taskId: string) => void
   onPrefetch?: (priority: boolean) => void
 }) {
@@ -115,41 +118,26 @@ export default function ServerLatencySummary({
     <section
       ref={sectionRef}
       onPointerEnter={() => onPrefetch?.(true)}
-      className="mx-[18px] border-t border-[var(--lite-line)] pb-2 pt-3 max-[967px]:mx-[15px]"
+      className="lite-server-card__quality"
       data-testid="server-latency-summary"
     >
-      <div className="flex items-center justify-between gap-4">
-        <span className="flex items-center gap-[9px] text-xs font-semibold text-[#566571] dark:text-[#B2C0C9]">
-          <svg
-            className="h-2.5 w-[18px]"
-            viewBox="0 0 20 10"
-            aria-hidden="true"
-            fill="none"
-            stroke={THEME.green}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M1 6h3l2-4 3 7 3-6 2 3h5" />
-          </svg>
-          {t("serverCard.networkQuality")}
-        </span>
-        <span className="text-[10px] text-[#7A8792]">{t("serverCard.recentHour")}</span>
+      <div className="lite-server-card__quality-title">
+        <h3>{t("serverCard.networkQuality")}</h3>
+        <span>{t("serverCard.recentHour")}</span>
       </div>
       {displayed.length > 0 ? (
-        <div
-          data-probe-layout={stackProbes ? "stack" : "grid"}
-          className={cn(
-            "mt-1.5 grid gap-x-5 gap-y-2 max-[967px]:gap-x-3 min-[1440px]:gap-x-3",
-            stackProbes ? "grid-cols-1" : "grid-cols-2 [&>.probe:nth-child(odd):last-child]:col-span-2",
-          )}
-        >
+        <>
+          <div className={cn("lite-server-card__probe-row lite-server-card__probe-head", !showPacketLoss && "lite-server-card__probe-row--no-loss")} aria-hidden="true">
+            <span>{t("serverCard.route")}</span>
+            <span>{t("serverCard.latency")}</span>
+            {showPacketLoss ? <span>{t("serverCard.packetLoss")}</span> : null}
+          </div>
           {displayed.map((item) => (
             <TaskProbe key={item.taskId} summary={item} showPacketLoss={showPacketLoss} onSelect={onSelectTask} onPress={() => onPrefetch?.(true)} />
           ))}
-        </div>
+        </>
       ) : (
-        <div className="grid min-h-[48px] place-items-center text-center text-[11px] leading-snug text-[#7A8792]">
+        <div className="grid place-items-center py-3 text-center text-[11px] leading-snug text-[var(--card-muted)]">
           {t("monitor.noData")}
         </div>
       )}
